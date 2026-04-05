@@ -1,1 +1,308 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <title>Grafittyy — Duvar Boyama</title>
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --panel: #16213e;
+      --accent: #e94560;
+      --text: #eaeaea;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      touch-action: none;
+    }
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    header {
+      flex-shrink: 0;
+      padding: 0.65rem 1rem;
+      background: linear-gradient(180deg, var(--panel) 0%, #0f172a 100%);
+      border-bottom: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    h1 {
+      font-size: clamp(1.1rem, 4vw, 1.35rem);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    h1 span { color: var(--accent); }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .colors {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .colors button {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid #fff3;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .colors button:hover, .colors button:focus-visible {
+      transform: scale(1.12);
+      outline: none;
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+    .colors button.active {
+      box-shadow: 0 0 0 3px #fff, 0 0 12px var(--accent);
+      transform: scale(1.08);
+    }
+    .btn {
+      padding: 0.45rem 0.85rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      transition: filter 0.15s, transform 0.1s;
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .btn:active { transform: scale(0.97); }
+    .btn.secondary {
+      background: #334155;
+      color: var(--text);
+    }
+    .slider-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .slider-wrap input[type="range"] {
+      width: 90px;
+      accent-color: var(--accent);
+    }
+    #stage-wrap {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+      background: #0c0c14;
+    }
+    #wall {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    footer {
+      flex-shrink: 0;
+      padding: 0.4rem 1rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-align: center;
+      background: #0f172a;
+    }
+    @media (max-width: 520px) {
+      header { padding: 0.5rem 0.65rem; }
+      .slider-wrap span { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Gra<span>fittyy</span></h1>
+      <div class="toolbar">
+        <div class="colors" id="palette" aria-label="Renkler"></div>
+        <div class="slider-wrap">
+          <span>Sprey</span>
+          <input type="range" id="size" min="4" max="48" value="18" aria-label="Fırça boyutu" />
+        </div>
+        <button type="button" class="btn secondary" id="undo" title="Son vuruşu geri al">Geri</button>
+        <button type="button" class="btn secondary" id="clear" title="Duvarı temizle">Temizle</button>
+        <button type="button" class="btn" id="save" title="PNG olarak indir">Kaydet</button>
+      </div>
+    </header>
+    <div id="stage-wrap">
+      <canvas id="wall" aria-label="Çizim alanı"></canvas>
+    </div>
+    <footer>Fare veya parmağınla sürükleyerek boya · Grafittyy</footer>
+  </div>
+  <script>
+(function () {
+  const canvas = document.getElementById('wall');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const paletteEl = document.getElementById('palette');
+  const sizeInput = document.getElementById('size');
+  const COLORS = [
+    '#e94560', '#f39c12', '#2ecc71', '#3498db', '#9b59b6',
+    '#1abc9c', '#ecf0f1', '#f1c40f', '#e74c3c', '#34495e'
+  ];
+  let currentColor = COLORS[0];
+  let drawing = false;
+  const snapshots = [];
+  const MAX_UNDO = 25;
 
+  function resize() {
+    const wrap = document.getElementById('stage-wrap');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = wrap.clientWidth;
+    const h = wrap.clientHeight;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    fillConcrete();
+  }
+
+  function fillConcrete() {
+    const w = canvas.width / (window.devicePixelRatio || 1);
+    const h = canvas.height / (window.devicePixelRatio || 1);
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#3d3d52');
+    g.addColorStop(1, '#2a2a3e');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    ctx.save();
+    ctx.globalAlpha = 0.06;
+    for (let i = 0; i < 400; i++) {
+      ctx.fillStyle = Math.random() > 0.5 ? '#000' : '#fff';
+      ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+    }
+    ctx.restore();
+  }
+
+  function pushSnapshot() {
+    try {
+      snapshots.push(canvas.toDataURL('image/png'));
+      while (snapshots.length > MAX_UNDO) snapshots.shift();
+    } catch (e) { /* ignore */ }
+  }
+
+  function spray(x, y, radius, color) {
+    const n = Math.max(8, Math.floor(radius * 2.5));
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.random() * radius;
+      const px = x + Math.cos(a) * r * 0.85;
+      const py = y + Math.sin(a) * r * 0.85;
+      const dot = 0.5 + Math.random() * (radius * 0.12);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.15 + Math.random() * 0.35;
+      ctx.beginPath();
+      ctx.arc(px, py, dot, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function clientToCanvas(clientX, clientY) {
+    const r = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    return {
+      x: (clientX - r.left) * (canvas.width / dpr) / r.width,
+      y: (clientY - r.top) * (canvas.height / dpr) / r.height
+    };
+  }
+
+  function onDown(e) {
+    e.preventDefault();
+    drawing = true;
+    pushSnapshot();
+    const p = 'touches' in e
+      ? clientToCanvas(e.touches[0].clientX, e.touches[0].clientY)
+      : clientToCanvas(e.clientX, e.clientY);
+    const r = +sizeInput.value;
+    spray(p.x, p.y, r, currentColor);
+  }
+
+  function onMove(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const p = 'touches' in e
+      ? clientToCanvas(e.touches[0].clientX, e.touches[0].clientY)
+      : clientToCanvas(e.clientX, e.clientY);
+    const r = +sizeInput.value;
+    spray(p.x, p.y, r, currentColor);
+  }
+
+  function onUp(e) {
+    if (e.cancelable) e.preventDefault();
+    drawing = false;
+  }
+
+  COLORS.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.style.background = c;
+    b.setAttribute('aria-label', 'Renk ' + (i + 1));
+    if (i === 0) b.classList.add('active');
+    b.addEventListener('click', () => {
+      paletteEl.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
+      b.classList.add('active');
+      currentColor = c;
+    });
+    paletteEl.appendChild(b);
+  });
+
+  document.getElementById('clear').addEventListener('click', () => {
+    pushSnapshot();
+    fillConcrete();
+  });
+
+  document.getElementById('undo').addEventListener('click', () => {
+    const url = snapshots.pop();
+    if (!url) return;
+    const img = new Image();
+    img.onload = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = canvas.width / dpr;
+      const h = canvas.height / dpr;
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+    };
+    img.src = url;
+  });
+
+  document.getElementById('save').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.download = 'grafittyy-' + Date.now() + '.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  });
+
+  canvas.addEventListener('mousedown', onDown);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  canvas.addEventListener('touchstart', onDown, { passive: false });
+  canvas.addEventListener('touchmove', onMove, { passive: false });
+  canvas.addEventListener('touchend', onUp);
+  canvas.addEventListener('touchcancel', onUp);
+
+  window.addEventListener('resize', resize);
+  resize();
+})();
+  </script>
+</body>
+</html>
