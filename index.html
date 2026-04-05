@@ -1114,8 +1114,8 @@
       syncNamesHost();
     } else {
       sendToHost({ type: "set_avatar", index: avatarPreviewIndex });
-      renderAvatarTable(lastRosterOrder);
     }
+    renderAvatarTable(lastRosterOrder);
   });
 
   $("btn-draw-start").addEventListener("click", () => {
