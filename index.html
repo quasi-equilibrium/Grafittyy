@@ -1,1 +1,636 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Resim Oyunu — Lobi</title>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4d;
+      --text: #e8eef5;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --accent-dim: #2563c4;
+      --danger: #f87171;
+      --success: #4ade80;
+      --radius: 12px;
+      --font: "Segoe UI", system-ui, sans-serif;
+    }
 
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body.layout-pc {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 24px;
+    }
+    body.layout-pc .shell {
+      width: 100%;
+      max-width: 520px;
+    }
+
+    body.layout-mobile {
+      padding: 16px 14px 32px;
+    }
+    body.layout-mobile .shell {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .shell { margin: 0 auto; }
+
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 8px;
+      letter-spacing: -0.02em;
+    }
+    .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; line-height: 1.45; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .stack { display: flex; flex-direction: column; gap: 12px; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1.05rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-monospace, monospace;
+    }
+    input[type="text"]::placeholder {
+      text-transform: none;
+      letter-spacing: normal;
+      color: var(--muted);
+    }
+
+    input.name-input {
+      text-transform: none;
+      letter-spacing: normal;
+      font-family: var(--font);
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: var(--font);
+      transition: background 0.15s, transform 0.1s;
+    }
+    button:active { transform: scale(0.98); }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-dim); }
+
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover:not(:disabled) { filter: brightness(1.1); }
+
+    .btn-choice {
+      flex: 1;
+      min-width: 120px;
+      padding: 16px;
+      font-size: 1.1rem;
+    }
+
+    .code-display {
+      font-family: ui-monospace, monospace;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-align: center;
+      padding: 16px;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px dashed var(--border);
+      user-select: all;
+    }
+
+    .msg-error {
+      color: var(--danger);
+      font-size: 0.9rem;
+      margin-top: 8px;
+    }
+    .msg-hint { color: var(--muted); font-size: 0.85rem; margin-top: 8px; }
+
+    table.names {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    table.names th, table.names td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    table.names th { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; }
+
+    .hidden { display: none !important; }
+
+    .screen { animation: fade 0.25s ease; }
+    @keyframes fade {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .device-pick .row { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div id="screen-device" class="screen card device-pick">
+      <h1>Görünüm</h1>
+      <p class="sub">Oyunu nasıl oynayacaksınız?</p>
+      <div class="row">
+        <button type="button" class="btn-primary btn-choice" id="btn-pc">PC</button>
+        <button type="button" class="btn-primary btn-choice" id="btn-mobile">Mobil</button>
+      </div>
+    </div>
+
+    <div id="screen-lobby" class="screen card hidden">
+      <h1>Resim Oyunu</h1>
+      <p class="sub">Arkadaşlarınla aynı odaya girin. Oda kodu 6 karakterdir.</p>
+      <div class="stack">
+        <div>
+          <button type="button" class="btn-primary" id="btn-create" style="width:100%">Oyun kur</button>
+        </div>
+        <div>
+          <label for="room-code">Oda kodu</label>
+          <input type="text" id="room-code" maxlength="6" placeholder="Örn. FTR12V" autocomplete="off" />
+        </div>
+        <div>
+          <button type="button" class="btn-secondary" id="btn-join" style="width:100%">Oyuna katıl</button>
+          <p id="join-error" class="msg-error hidden"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-host-wait" class="screen card hidden">
+      <h1>Oda hazır</h1>
+      <p class="sub">Kodunu arkadaşlarına gönder. En az 2 kişi (sen dahil) olunca oyuna başlayabilirsin.</p>
+      <p class="label-like" style="margin:0 0 6px;color:var(--muted);font-size:0.8rem;">Oda kodu</p>
+      <div class="code-display" id="host-code-display"></div>
+      <p class="msg-hint" id="host-player-count"></p>
+      <div class="stack" style="margin-top:20px;">
+        <button type="button" class="btn-primary" id="btn-start-game" disabled>Oyuna başla</button>
+        <p class="msg-hint">Maksimum 6 oyuncu (sen dahil).</p>
+      </div>
+    </div>
+
+    <div id="screen-join-wait" class="screen card hidden">
+      <h1>Odada bekleniyor</h1>
+      <p class="sub">Kurucu oyuna başlatınca devam edeceksin.</p>
+      <p class="msg-hint" id="join-wait-status">Bağlantı kuruldu.</p>
+    </div>
+
+    <div id="screen-names" class="screen card hidden">
+      <h1>İsim</h1>
+      <p class="sub">En fazla 10 harf. Masada sadece odaya katılanlar görünür.</p>
+      <div class="stack">
+        <div>
+          <label for="player-name">Adın</label>
+          <input type="text" class="name-input" id="player-name" maxlength="10" placeholder="İsmini yaz" autocomplete="off" />
+        </div>
+        <button type="button" class="btn-primary" id="btn-save-name" style="width:100%">İsmi kaydet</button>
+        <div>
+          <p style="margin:0 0 8px;color:var(--muted);font-size:0.8rem;">Oyuncular</p>
+          <table class="names">
+            <thead><tr><th>#</th><th>İsim</th></tr></thead>
+            <tbody id="names-tbody"></tbody>
+          </table>
+        </div>
+        <button type="button" class="btn-primary hidden" id="btn-names-start" style="width:100%">Başlat</button>
+        <p class="msg-hint hidden" id="names-wait-host">Kurucu başlatınca sonraki adıma geçilecek.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  const MAX_PLAYERS = 6;
+  const MIN_TO_START = 2;
+  const CODE_LEN = 6;
+  const JOIN_TIMEOUT_MS = 10000;
+
+  const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+  const $ = (id) => document.getElementById(id);
+  const screens = {
+    device: $("screen-device"),
+    lobby: $("screen-lobby"),
+    hostWait: $("screen-host-wait"),
+    joinWait: $("screen-join-wait"),
+    names: $("screen-names"),
+  };
+
+  let layout = null;
+  let peer = null;
+  let role = null;
+  let roomCode = null;
+  let hostConn = null;
+  const guestConnections = new Map();
+  let myName = "";
+  const namesByPeer = new Map();
+  let lastRosterOrder = [];
+
+  function showScreen(name) {
+    Object.values(screens).forEach((el) => el.classList.add("hidden"));
+    screens[name].classList.remove("hidden");
+  }
+
+  function generateCode() {
+    let s = "";
+    for (let i = 0; i < CODE_LEN; i++) {
+      s += CHARS[Math.floor(Math.random() * CHARS.length)];
+    }
+    return s;
+  }
+
+  function normalizeCode(raw) {
+    return String(raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LEN);
+  }
+
+  function sanitizeName(raw) {
+    const t = String(raw || "").trim().slice(0, 10);
+    return t;
+  }
+
+  function setJoinError(msg) {
+    const el = $("join-error");
+    if (!msg) {
+      el.classList.add("hidden");
+      el.textContent = "";
+    } else {
+      el.textContent = msg;
+      el.classList.remove("hidden");
+    }
+  }
+
+  function updateHostUi() {
+    const count = 1 + guestConnections.size;
+    $("host-player-count").textContent = `Oyuncu: ${count} / ${MAX_PLAYERS}`;
+    $("btn-start-game").disabled = count < MIN_TO_START;
+  }
+
+  function broadcastFromHost(msg, exceptConn) {
+    guestConnections.forEach((meta) => {
+      if (meta.conn !== exceptConn && meta.conn.open) {
+        try { meta.conn.send(msg); } catch (_) {}
+      }
+    });
+  }
+
+  function sendToHost(msg) {
+    if (hostConn && hostConn.open) hostConn.send(msg);
+  }
+
+  function renderNamesTable(orderIds) {
+    const tbody = $("names-tbody");
+    tbody.innerHTML = "";
+    let i = 1;
+    orderIds.forEach((pid) => {
+      const n = namesByPeer.get(pid);
+      const display = n && String(n).trim() ? escapeHtml(String(n).trim()) : "—";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${i++}</td><td>${display}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function destroyPeer() {
+    if (peer) {
+      try { peer.destroy(); } catch (_) {}
+    }
+    peer = null;
+    hostConn = null;
+    guestConnections.clear();
+  }
+
+  function attachConnHandlers(conn, isHostSide) {
+    conn.on("data", (data) => {
+      handleMessage(data, conn, isHostSide);
+    });
+    conn.on("close", () => {
+      if (isHostSide) {
+        guestConnections.delete(conn.peer);
+        broadcastFromHost({ type: "roster", peerId: conn.peer, left: true });
+        updateHostUi();
+        syncNamesHost();
+      } else {
+        hostConn = null;
+        setJoinError("Bağlantı koptu. Tekrar dene.");
+        showScreen("lobby");
+      }
+    });
+    conn.on("error", () => {});
+  }
+
+  function handleMessage(data, conn, isHostSide) {
+    if (!data || typeof data.type !== "string") return;
+
+    if (isHostSide) {
+      if (data.type === "hello") {
+        return;
+      }
+      if (data.type === "set_name") {
+        const name = sanitizeName(data.name);
+        if (!name) return;
+        const meta = guestConnections.get(conn.peer);
+        if (meta) meta.name = name;
+        namesByPeer.set(conn.peer, name);
+        syncNamesHost();
+        broadcastFromHost({
+          type: "names_state",
+          names: Object.fromEntries(namesByPeer),
+          order: rosterOrderHost(),
+        });
+      }
+      return;
+    }
+
+    if (data.type === "phase") {
+      if (data.phase === "names") {
+        namesByPeer.clear();
+        if (data.names) {
+          Object.entries(data.names).forEach(([k, v]) => namesByPeer.set(k, v));
+        }
+        lastRosterOrder = data.order || [];
+        enterNamesPhase(data.iAmHost === true, lastRosterOrder);
+      }
+      return;
+    }
+    if (data.type === "names_state") {
+      namesByPeer.clear();
+      Object.entries(data.names || {}).forEach(([k, v]) => namesByPeer.set(k, v));
+      lastRosterOrder = data.order || lastRosterOrder;
+      renderNamesTable(lastRosterOrder);
+      return;
+    }
+    if (data.type === "next_from_host") {
+      $("names-wait-host").classList.remove("hidden");
+      return;
+    }
+  }
+
+  function rosterOrderHost() {
+    const ids = [peer.id, ...Array.from(guestConnections.keys())];
+    return ids;
+  }
+
+  function syncNamesHost() {
+    const order = rosterOrderHost();
+    broadcastFromHost({
+      type: "names_state",
+      names: Object.fromEntries(namesByPeer),
+      order,
+    });
+    renderNamesTable(order);
+  }
+
+  function enterNamesPhase(isHost, initialOrder) {
+    showScreen("names");
+    myName = "";
+    $("player-name").value = "";
+    $("btn-names-start").classList.toggle("hidden", !isHost);
+    $("names-wait-host").classList.toggle("hidden", isHost);
+    if (isHost) {
+      namesByPeer.set(peer.id, "");
+      renderNamesTable(rosterOrderHost());
+    } else {
+      lastRosterOrder = initialOrder.length ? initialOrder : lastRosterOrder;
+      renderNamesTable(lastRosterOrder);
+    }
+  }
+
+  function openPeerAsHost(attemptsLeft) {
+    const code = generateCode();
+    destroyPeer();
+    peer = new Peer(code, {
+      debug: 0,
+    });
+
+    peer.on("open", (id) => {
+      roomCode = id;
+      $("host-code-display").textContent = roomCode;
+      updateHostUi();
+      showScreen("hostWait");
+    });
+
+    peer.on("error", (err) => {
+      if (err.type === "unavailable-id" && attemptsLeft > 0) {
+        openPeerAsHost(attemptsLeft - 1);
+      } else {
+        alert("Oda açılamadı. Tekrar dene.");
+        showScreen("lobby");
+      }
+    });
+
+    peer.on("connection", (conn) => {
+      if (guestConnections.size >= MAX_PLAYERS - 1) {
+        conn.on("open", () => {
+          try {
+            conn.send({ type: "kick", reason: "full" });
+          } catch (_) {}
+          conn.close();
+        });
+        return;
+      }
+
+      conn.on("open", () => {
+        guestConnections.set(conn.peer, { conn, name: "" });
+        attachConnHandlers(conn, true);
+        conn.send({ type: "hello_ok" });
+        updateHostUi();
+        broadcastFromHost({ type: "roster_tick", count: 1 + guestConnections.size });
+      });
+    });
+  }
+
+  function joinRoom(code) {
+    setJoinError("");
+    destroyPeer();
+    peer = new Peer(undefined, { debug: 0 });
+
+    const fail = (msg) => {
+      destroyPeer();
+      setJoinError(msg);
+    };
+
+    peer.on("error", (e) => {
+      if (e.type === "peer-unavailable" || e.type === "network") {
+        fail("Böyle bir kod yok:(");
+      }
+    });
+
+    peer.on("open", () => {
+      const conn = peer.connect(code, { reliable: true });
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        try { conn.close(); } catch (_) {}
+        fail("Böyle bir kod yok:(");
+      }, JOIN_TIMEOUT_MS);
+
+      conn.on("open", () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        hostConn = conn;
+        attachConnHandlers(conn, false);
+        conn.send({ type: "hello" });
+        showScreen("joinWait");
+        $("join-wait-status").textContent = "Bağlandın. Kurucunun başlatmasını bekle.";
+      });
+
+      conn.on("data", (data) => {
+        if (data && data.type === "kick" && data.reason === "full") {
+          fail("Oda dolu (en fazla 6 kişi).");
+        }
+      });
+
+      conn.on("error", () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        fail("Böyle bir kod yok:(");
+      });
+
+      conn.on("close", () => {
+        if (settled && hostConn === conn && !screens.joinWait.classList.contains("hidden")) {
+          $("join-wait-status").textContent = "Bağlantı kapandı.";
+        }
+      });
+    });
+  }
+
+  $("btn-pc").addEventListener("click", () => {
+    layout = "pc";
+    document.body.classList.remove("layout-mobile");
+    document.body.classList.add("layout-pc");
+    showScreen("lobby");
+  });
+
+  $("btn-mobile").addEventListener("click", () => {
+    layout = "mobile";
+    document.body.classList.remove("layout-pc");
+    document.body.classList.add("layout-mobile");
+    showScreen("lobby");
+  });
+
+  $("btn-create").addEventListener("click", () => {
+    role = "host";
+    setJoinError("");
+    openPeerAsHost(12);
+  });
+
+  $("btn-join").addEventListener("click", () => {
+    role = "guest";
+    const code = normalizeCode($("room-code").value);
+    if (code.length !== CODE_LEN) {
+      setJoinError("Kod tam olarak 6 karakter olmalı.");
+      return;
+    }
+    joinRoom(code);
+  });
+
+  $("btn-start-game").addEventListener("click", () => {
+    if (role !== "host" || !peer) return;
+    const count = 1 + guestConnections.size;
+    if (count < MIN_TO_START) return;
+
+    namesByPeer.clear();
+    namesByPeer.set(peer.id, "");
+    guestConnections.forEach((_, guestId) => {
+      namesByPeer.set(guestId, "");
+    });
+
+    const order = rosterOrderHost();
+    const payload = {
+      type: "phase",
+      phase: "names",
+      names: Object.fromEntries(namesByPeer),
+      order,
+      iAmHost: false,
+    };
+    broadcastFromHost(payload);
+    enterNamesPhase(true, order);
+  });
+
+  $("btn-save-name").addEventListener("click", () => {
+    const name = sanitizeName($("player-name").value);
+    if (!name) {
+      alert("Lütfen bir isim gir (en fazla 10 harf).");
+      return;
+    }
+    myName = name;
+    if (role === "host" && peer) {
+      namesByPeer.set(peer.id, name);
+      syncNamesHost();
+    } else {
+      namesByPeer.set(peer.id, name);
+      sendToHost({ type: "set_name", name });
+      renderNamesTable(lastRosterOrder);
+    }
+  });
+
+  $("btn-names-start").addEventListener("click", () => {
+    if (role !== "host") return;
+    broadcastFromHost({ type: "next_from_host" });
+  });
+
+  window.addEventListener("beforeunload", () => destroyPeer());
+})();
+  </script>
+</body>
+</html>
