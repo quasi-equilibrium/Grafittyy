@@ -178,6 +178,141 @@
     }
 
     .device-pick .row { margin-top: 8px; }
+
+    /* —— Karakter seçimi (Gartic tarzı) —— */
+    .avatar-screen h1 { margin-bottom: 4px; }
+    .avatar-picker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin: 20px 0 16px;
+    }
+    .avatar-arrow {
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 1.35rem;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .avatar-arrow:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--bg);
+    }
+    .avatar-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+    .avatar-stage {
+      width: min(220px, 70vw);
+      aspect-ratio: 1;
+      flex-shrink: 0;
+    }
+    .avatar-stage svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .avatar-actions { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+    .avatar-actions button { width: 100%; }
+    .av-cell {
+      display: inline-flex;
+      align-items: center;
+      vertical-align: middle;
+    }
+    .av-cell svg { width: 36px; height: 36px; display: block; }
+    .pick-hint { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+
+    /* —— Çizim ekranı —— */
+    #screen-draw {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      max-width: none !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+      border-radius: 0 !important;
+      background: #0c0c14;
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+    }
+    #screen-draw .draw-head {
+      flex-shrink: 0;
+      padding: 0.55rem 0.85rem;
+      background: linear-gradient(180deg, var(--surface) 0%, #0f172a 100%);
+      border-bottom: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    #screen-draw .draw-head h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    #screen-draw .draw-tools {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    #screen-draw .draw-colors { display: flex; gap: 4px; flex-wrap: wrap; }
+    #screen-draw .draw-colors button {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid #fff3;
+      padding: 0;
+      cursor: pointer;
+    }
+    #screen-draw .draw-colors button.active {
+      box-shadow: 0 0 0 2px var(--accent);
+      transform: scale(1.06);
+    }
+    #screen-draw .draw-slider {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+    #screen-draw .draw-slider input { width: 72px; accent-color: var(--accent); }
+    #screen-draw .btn-draw {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.85rem;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font);
+    }
+    #screen-draw .btn-draw.primary { background: var(--accent); color: #fff; }
+    #screen-draw .btn-draw.ghost { background: var(--border); color: var(--text); }
+    #draw-wrap {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      background: #080810;
+    }
+    #draw-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      touch-action: none;
+    }
   </style>
 </head>
 <body>
@@ -243,9 +378,50 @@
             <tbody id="names-tbody"></tbody>
           </table>
         </div>
-        <button type="button" class="btn-primary hidden" id="btn-names-start" style="width:100%">Başlat</button>
-        <p class="msg-hint hidden" id="names-wait-host">Kurucu başlatınca sonraki adıma geçilecek.</p>
       </div>
+    </div>
+
+    <div id="screen-avatar" class="screen card hidden avatar-screen">
+      <h1>Karakter</h1>
+      <p class="sub">Sol okla karakterleri değiştir, <strong>Seç</strong> ile profil resmini ayarla.</p>
+      <div class="avatar-picker">
+        <button type="button" class="avatar-arrow" id="avatar-prev" aria-label="Önceki karakter">◀</button>
+        <div class="avatar-stage" id="avatar-stage" aria-live="polite"></div>
+      </div>
+      <div class="avatar-actions">
+        <button type="button" class="btn-primary" id="btn-avatar-select">Seç</button>
+        <p class="pick-hint" id="avatar-pick-hint">Önce bir karakter seç ve <strong>Seç</strong>’e bas.</p>
+      </div>
+      <div>
+        <p style="margin:0 0 8px;color:var(--muted);font-size:0.8rem;">Oyuncular</p>
+        <table class="names">
+          <thead><tr><th>#</th><th>Profil</th><th>İsim</th></tr></thead>
+          <tbody id="avatar-names-tbody"></tbody>
+        </table>
+      </div>
+      <div class="stack" style="margin-top:16px;">
+        <button type="button" class="btn-primary hidden" id="btn-draw-start" style="width:100%">Oyuna başla</button>
+        <p class="msg-hint hidden" id="avatar-wait-host">Kurucu oyuna başlatınca çizim ekranı açılacak.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-draw" class="screen hidden">
+    <div class="draw-head">
+      <h2 id="draw-title">Çizim</h2>
+      <div class="draw-tools">
+        <div class="draw-colors" id="draw-palette" aria-label="Renkler"></div>
+        <div class="draw-slider">
+          <span>Kalem</span>
+          <input type="range" id="draw-size" min="2" max="36" value="8" />
+        </div>
+        <button type="button" class="btn-draw ghost" id="draw-undo">Geri</button>
+        <button type="button" class="btn-draw ghost" id="draw-clear">Temizle</button>
+        <button type="button" class="btn-draw primary" id="draw-save">Kaydet</button>
+      </div>
+    </div>
+    <div id="draw-wrap">
+      <canvas id="draw-canvas" aria-label="Çizim alanı"></canvas>
     </div>
   </div>
 
@@ -265,7 +441,13 @@
     hostWait: $("screen-host-wait"),
     joinWait: $("screen-join-wait"),
     names: $("screen-names"),
+    avatar: $("screen-avatar"),
+    draw: $("screen-draw"),
   };
+
+  const AVATAR_COUNT = 10;
+  /** @type {string[]} */
+  const AVATAR_SVGS = [];
 
   let layout = null;
   let peer = null;
@@ -275,11 +457,278 @@
   const guestConnections = new Map();
   let myName = "";
   const namesByPeer = new Map();
+  /** @type {Map<string, number>} peerId -> 0..AVATAR_COUNT-1, only if locked in */
+  const avatarByPeer = new Map();
   let lastRosterOrder = [];
+  let avatarPreviewIndex = 0;
+  /** seçildi mi (Seç tuşu) */
+  let myAvatarLocked = false;
+  let nameSaved = false;
 
   function showScreen(name) {
-    Object.values(screens).forEach((el) => el.classList.add("hidden"));
-    screens[name].classList.remove("hidden");
+    const shell = document.querySelector(".shell");
+    if (name === "draw") {
+      shell?.classList.add("hidden");
+      Object.keys(screens).forEach((k) => {
+        if (k === "draw") screens.draw.classList.remove("hidden");
+        else screens[k].classList.add("hidden");
+      });
+      requestAnimationFrame(() => {
+        resizeDrawCanvas();
+      });
+      return;
+    }
+    shell?.classList.remove("hidden");
+    screens.draw.classList.add("hidden");
+    const orderKeys = ["device", "lobby", "hostWait", "joinWait", "names", "avatar"];
+    orderKeys.forEach((k) => {
+      screens[k].classList.toggle("hidden", k !== name);
+    });
+  }
+
+  function buildAvatarSvgs() {
+    const S = "#1a2744";
+    const w = 3.2;
+    const face = (skin, cheeks, mouthWide) => {
+      const teeth = mouthWide
+        ? "<path fill=\"#fff\" stroke=\"" + S + "\" stroke-width=\"" + (w * 0.35) + "\" d=\"M38 68h24v10H38z\"/><path stroke=\"" + S + "\" stroke-width=\"1.2\" d=\"M44 68v10M50 68v10M56 68v10\"/>"
+        : "<path fill=\"none\" stroke=\"" + S + "\" stroke-width=\"" + w + "\" d=\"M40 70 Q50 78 60 70\"/>";
+      const bl = cheeks
+        ? "<circle cx=\"32\" cy=\"62\" r=\"5\" fill=\"#f9a8c8\" stroke=\"none\"/><circle cx=\"68\" cy=\"62\" r=\"5\" fill=\"#f9a8c8\" stroke=\"none\"/>"
+        : "";
+      return (
+        "<ellipse cx=\"50\" cy=\"54\" rx=\"30\" ry=\"26\" fill=\"" +
+        skin +
+        "\" stroke=\"" +
+        S +
+        "\" stroke-width=\"" +
+        w +
+        "\"/>" +
+        bl +
+        "<ellipse cx=\"38\" cy=\"48\" rx=\"9\" ry=\"12\" fill=\"" +
+        S +
+        "\" stroke=\"none\"/><circle cx=\"40\" cy=\"44\" r=\"3\" fill=\"#fff\"/>" +
+        "<ellipse cx=\"62\" cy=\"48\" rx=\"9\" ry=\"12\" fill=\"" +
+        S +
+        "\" stroke=\"none\"/><circle cx=\"64\" cy=\"44\" r=\"3\" fill=\"#fff\"/>" +
+        "<path fill=\"none\" stroke=\"" +
+        S +
+        "\" stroke-width=\"2\" d=\"M34 38q6-4 12-2M54 38q6-4 12-2\"/>" +
+        teeth
+      );
+    };
+    const wrap = (ring, inner) =>
+      "<svg viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\" aria-hidden=\"true\">" +
+      "<circle cx=\"50\" cy=\"50\" r=\"47\" fill=\"" +
+      ring +
+      "\" stroke=\"" +
+      S +
+      "\" stroke-width=\"" +
+      w +
+      "\"/>" +
+      inner +
+      "</svg>";
+
+    AVATAR_SVGS[0] = wrap("#f7d936", "<g>" + face("#5eead4", true, true) + "<path fill=\"" + S + "\" stroke=\"none\" d=\"M38 22 L35 30 L42 28 Z M62 22 L65 30 L58 28 Z\"/></g>");
+    AVATAR_SVGS[1] = wrap("#fb923c", "<g>" + face("#c4b5fd", true, true) + "<ellipse cx=\"50\" cy=\"24\" rx=\"8\" ry=\"4\" fill=\"" + S + "\"/></g>");
+    AVATAR_SVGS[2] = wrap("#f472b6", "<g>" + face("#7dd3fc", true, false) + "<circle cx=\"50\" cy=\"30\" r=\"6\" fill=\"#fff\" stroke=\"" + S + "\" stroke-width=\"" + w + "\"/></g>");
+    AVATAR_SVGS[3] = wrap("#fde047", "<g>" + face("#fdba74", true, true) + "<path fill=\"" + S + "\" stroke=\"none\" d=\"M28 52 L22 48 L22 58 Z M72 52 L78 48 L78 58 Z\"/></g>");
+    AVATAR_SVGS[4] = wrap("#34d399", "<g>" + face("#fda4af", true, true) + "<rect x=\"40\" y=\"22\" width=\"20\" height=\"10\" rx=\"3\" fill=\"#94a3b8\" stroke=\"" + S + "\" stroke-width=\"" + w + "\"/></g>");
+    AVATAR_SVGS[5] = wrap("#a78bfa", "<g>" + face("#fcd34d", false, false) + "<rect x=\"34\" y=\"40\" width=\"32\" height=\"22\" rx=\"6\" fill=\"#e2e8f0\" stroke=\"" + S + "\" stroke-width=\"" + w + "\"/><circle cx=\"42\" cy=\"50\" r=\"4\" fill=\"" + S + "\"/><circle cx=\"58\" cy=\"50\" r=\"4\" fill=\"" + S + "\"/></g>");
+    AVATAR_SVGS[6] = wrap("#f87171", "<g>" + face("#86efac", true, true) + "<path fill=\"" + S + "\" stroke=\"none\" d=\"M36 24 L32 14 L40 18 Z M64 24 L68 14 L60 18 Z\"/></g>");
+    AVATAR_SVGS[7] = wrap("#facc15", "<g>" + face("#fef08a", true, true) + "<path fill=\"#f97316\" stroke=\"" + S + "\" stroke-width=\"" + w + "\" d=\"M30 78 Q50 88 70 78 L68 72 Q50 80 32 72 Z\"/></g>");
+    AVATAR_SVGS[8] = wrap("#60a5fa", "<g>" + face("#d4a574", true, false) + "<ellipse cx=\"50\" cy=\"28\" rx=\"22\" ry=\"14\" fill=\"" + S + "\"/><circle cx=\"50\" cy=\"30\" r=\"8\" fill=\"#fef3c7\"/></g>");
+    AVATAR_SVGS[9] = wrap("#e879f9", "<g opacity=\"0.95\">" + face("#e2e8f0", false, false).replace(/ellipse cx=\"50\" cy=\"54\" rx=\"30\" ry=\"26\"/g, "ellipse cx=\"50\" cy=\"54\" rx=\"28\" ry=\"32\"") + "<path fill=\"none\" stroke=\"" + S + "\" stroke-width=\"" + w + "\" d=\"M34 84 Q50 92 66 84\"/></g>");
+  }
+
+  function renderAvatarPreview() {
+    const stage = $("avatar-stage");
+    const svg = AVATAR_SVGS[avatarPreviewIndex] || "";
+    stage.innerHTML = svg;
+  }
+
+  function avatarCellHtml(peerId) {
+    const idx = avatarByPeer.get(peerId);
+    if (typeof idx === "number" && AVATAR_SVGS[idx]) {
+      return '<span class="av-cell">' + AVATAR_SVGS[idx] + "</span>";
+    }
+    return '<span class="av-cell" style="color:var(--muted);font-size:0.85rem;">—</span>';
+  }
+
+  function renderAvatarTable(orderIds) {
+    const tbody = $("avatar-names-tbody");
+    tbody.innerHTML = "";
+    let i = 1;
+    orderIds.forEach((pid) => {
+      const n = namesByPeer.get(pid);
+      const display = n && String(n).trim() ? escapeHtml(String(n).trim()) : "—";
+      const tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + i++ + "</td><td>" + avatarCellHtml(pid) + "</td><td>" + display + "</td>";
+      tbody.appendChild(tr);
+    });
+  }
+
+  function enterAvatarPhase(isHost, order) {
+    showScreen("avatar");
+    myAvatarLocked = false;
+    avatarPreviewIndex = Math.floor(Math.random() * AVATAR_COUNT);
+    $("avatar-pick-hint").classList.remove("hidden");
+    $("avatar-pick-hint").innerHTML = "Önce bir karakter seç ve <strong>Seç</strong>’e bas.";
+    $("btn-draw-start").classList.toggle("hidden", !isHost);
+    $("avatar-wait-host").classList.toggle("hidden", isHost);
+    renderAvatarPreview();
+    const ord = order && order.length ? order : lastRosterOrder;
+    lastRosterOrder = ord;
+    renderAvatarTable(ord);
+    if (isHost) syncNamesHost();
+  }
+
+  let drawBoardReady = false;
+  let drawCtx = null;
+  let drawCanvas = null;
+  let drawColor = "#3d8bfd";
+  let drawDrawing = false;
+  let drawLast = null;
+  const drawSnapshots = [];
+  const DRAW_COLORS = ["#3d8bfd", "#e94560", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#ecf0f1", "#34495e"];
+
+  function resizeDrawCanvas() {
+    if (!drawCanvas || screens.draw.classList.contains("hidden")) return;
+    const wrap = $("draw-wrap");
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = wrap.clientWidth;
+    const h = wrap.clientHeight;
+    if (w < 2 || h < 2) return;
+    drawCanvas.width = Math.floor(w * dpr);
+    drawCanvas.height = Math.floor(h * dpr);
+    drawCanvas.style.width = w + "px";
+    drawCanvas.style.height = h + "px";
+    drawCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawCtx.fillStyle = "#fafafa";
+    drawCtx.fillRect(0, 0, w, h);
+  }
+
+  function initDrawBoard() {
+    drawCanvas = $("draw-canvas");
+    drawCtx = drawCanvas.getContext("2d", { alpha: false });
+    const title = $("draw-title");
+    const label = (myName && myName.trim()) || "Oyuncu";
+    title.textContent = "Çizim — " + label;
+
+    if (!drawBoardReady) {
+      drawBoardReady = true;
+      const pal = $("draw-palette");
+      DRAW_COLORS.forEach((c, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.style.background = c;
+        b.setAttribute("aria-label", "Renk " + (i + 1));
+        if (i === 0) b.classList.add("active");
+        b.addEventListener("click", () => {
+          pal.querySelectorAll("button").forEach((x) => x.classList.remove("active"));
+          b.classList.add("active");
+          drawColor = c;
+        });
+        pal.appendChild(b);
+      });
+
+      function pos(e) {
+        const r = drawCanvas.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        return {
+          x: ((("touches" in e ? e.touches[0].clientX : e.clientX) - r.left) * (drawCanvas.width / dpr)) / r.width,
+          y: ((("touches" in e ? e.touches[0].clientY : e.clientY) - r.top) * (drawCanvas.height / dpr)) / r.height,
+        };
+      }
+
+      function lineTo(from, to) {
+        const sz = +$("draw-size").value || 8;
+        drawCtx.strokeStyle = drawColor;
+        drawCtx.lineWidth = sz;
+        drawCtx.lineCap = "round";
+        drawCtx.lineJoin = "round";
+        drawCtx.beginPath();
+        drawCtx.moveTo(from.x, from.y);
+        drawCtx.lineTo(to.x, to.y);
+        drawCtx.stroke();
+      }
+
+      function pushDrawSnap() {
+        try {
+          drawSnapshots.push(drawCanvas.toDataURL("image/png"));
+          while (drawSnapshots.length > 30) drawSnapshots.shift();
+        } catch (_) {}
+      }
+
+      function onDown(e) {
+        e.preventDefault();
+        drawDrawing = true;
+        pushDrawSnap();
+        drawLast = pos(e);
+      }
+      function onMove(e) {
+        if (!drawDrawing) return;
+        e.preventDefault();
+        const p = pos(e);
+        if (drawLast) lineTo(drawLast, p);
+        drawLast = p;
+      }
+      function onUp(e) {
+        if (e.cancelable) e.preventDefault();
+        drawDrawing = false;
+        drawLast = null;
+      }
+
+      drawCanvas.addEventListener("mousedown", onDown);
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+      drawCanvas.addEventListener("touchstart", onDown, { passive: false });
+      drawCanvas.addEventListener("touchmove", onMove, { passive: false });
+      drawCanvas.addEventListener("touchend", onUp);
+      drawCanvas.addEventListener("touchcancel", onUp);
+
+      $("draw-undo").addEventListener("click", () => {
+        const url = drawSnapshots.pop();
+        if (!url) return;
+        const img = new Image();
+        img.onload = () => {
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          const w = drawCanvas.width / dpr;
+          const h = drawCanvas.height / dpr;
+          drawCtx.clearRect(0, 0, w, h);
+          drawCtx.drawImage(img, 0, 0, w, h);
+        };
+        img.src = url;
+      });
+
+      $("draw-clear").addEventListener("click", () => {
+        pushDrawSnap();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = drawCanvas.width / dpr;
+        const h = drawCanvas.height / dpr;
+        drawCtx.fillStyle = "#fafafa";
+        drawCtx.fillRect(0, 0, w, h);
+      });
+
+      $("draw-save").addEventListener("click", () => {
+        const a = document.createElement("a");
+        a.download = "resim-" + Date.now() + ".png";
+        a.href = drawCanvas.toDataURL("image/png");
+        a.click();
+      });
+
+      window.addEventListener("resize", () => {
+        if (!screens.draw.classList.contains("hidden")) resizeDrawCanvas();
+      });
+    }
+
+    drawSnapshots.length = 0;
+    resizeDrawCanvas();
+  }
+
+  function enterDrawPhase() {
+    showScreen("draw");
+    initDrawBoard();
   }
 
   function generateCode() {
@@ -389,11 +838,14 @@
         if (meta) meta.name = name;
         namesByPeer.set(conn.peer, name);
         syncNamesHost();
-        broadcastFromHost({
-          type: "names_state",
-          names: Object.fromEntries(namesByPeer),
-          order: rosterOrderHost(),
-        });
+        return;
+      }
+      if (data.type === "set_avatar") {
+        const idx = Number(data.index);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= AVATAR_COUNT) return;
+        avatarByPeer.set(conn.peer, idx);
+        syncNamesHost();
+        return;
       }
       return;
     }
@@ -406,6 +858,11 @@
         }
         lastRosterOrder = data.order || [];
         enterNamesPhase(data.iAmHost === true, lastRosterOrder);
+        return;
+      }
+      if (data.phase === "draw") {
+        enterDrawPhase();
+        return;
       }
       return;
     }
@@ -413,11 +870,16 @@
       namesByPeer.clear();
       Object.entries(data.names || {}).forEach(([k, v]) => namesByPeer.set(k, v));
       lastRosterOrder = data.order || lastRosterOrder;
+      avatarByPeer.clear();
+      const av = data.avatars || {};
+      Object.entries(av).forEach(([k, v]) => {
+        const n = Number(v);
+        if (Number.isInteger(n) && n >= 0 && n < AVATAR_COUNT) avatarByPeer.set(k, n);
+      });
       renderNamesTable(lastRosterOrder);
-      return;
-    }
-    if (data.type === "next_from_host") {
-      $("names-wait-host").classList.remove("hidden");
+      if (!screens.avatar.classList.contains("hidden")) {
+        renderAvatarTable(lastRosterOrder);
+      }
       return;
     }
   }
@@ -429,20 +891,28 @@
 
   function syncNamesHost() {
     const order = rosterOrderHost();
+    const av = {};
+    avatarByPeer.forEach((v, k) => {
+      av[k] = v;
+    });
     broadcastFromHost({
       type: "names_state",
       names: Object.fromEntries(namesByPeer),
       order,
+      avatars: av,
     });
     renderNamesTable(order);
+    if (!screens.avatar.classList.contains("hidden")) {
+      renderAvatarTable(order);
+    }
   }
 
   function enterNamesPhase(isHost, initialOrder) {
     showScreen("names");
     myName = "";
+    nameSaved = false;
     $("player-name").value = "";
-    $("btn-names-start").classList.toggle("hidden", !isHost);
-    $("names-wait-host").classList.toggle("hidden", isHost);
+    avatarByPeer.clear();
     if (isHost) {
       namesByPeer.set(peer.id, "");
       renderNamesTable(rosterOrderHost());
@@ -614,20 +1084,48 @@
       return;
     }
     myName = name;
+    nameSaved = true;
     if (role === "host" && peer) {
       namesByPeer.set(peer.id, name);
       syncNamesHost();
+      enterAvatarPhase(true, rosterOrderHost());
     } else {
       namesByPeer.set(peer.id, name);
       sendToHost({ type: "set_name", name });
       renderNamesTable(lastRosterOrder);
+      enterAvatarPhase(false, lastRosterOrder);
     }
   });
 
-  $("btn-names-start").addEventListener("click", () => {
-    if (role !== "host") return;
-    broadcastFromHost({ type: "next_from_host" });
+  $("avatar-prev").addEventListener("click", () => {
+    avatarPreviewIndex = (avatarPreviewIndex - 1 + AVATAR_COUNT) % AVATAR_COUNT;
+    renderAvatarPreview();
   });
+
+  $("btn-avatar-select").addEventListener("click", () => {
+    if (!nameSaved || !peer) {
+      alert("Önce ismini kaydet.");
+      return;
+    }
+    myAvatarLocked = true;
+    avatarByPeer.set(peer.id, avatarPreviewIndex);
+    $("avatar-pick-hint").innerHTML = "Profil güncellendi. İstersen okla başka karakter seçip tekrar <strong>Seç</strong>’e bas.";
+    if (role === "host") {
+      syncNamesHost();
+    } else {
+      sendToHost({ type: "set_avatar", index: avatarPreviewIndex });
+      renderAvatarTable(lastRosterOrder);
+    }
+  });
+
+  $("btn-draw-start").addEventListener("click", () => {
+    if (role !== "host" || !peer) return;
+    const payload = { type: "phase", phase: "draw", iAmHost: false };
+    broadcastFromHost(payload);
+    enterDrawPhase();
+  });
+
+  buildAvatarSvgs();
 
   window.addEventListener("beforeunload", () => destroyPeer());
 })();
