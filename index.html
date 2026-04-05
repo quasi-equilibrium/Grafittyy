@@ -1,307 +1,635 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <meta name="theme-color" content="#1a1a2e" />
-  <title>Grafittyy — Duvar Boyama</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Resim Oyunu — Lobi</title>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     :root {
-      --bg: #1a1a2e;
-      --panel: #16213e;
-      --accent: #e94560;
-      --text: #eaeaea;
-      --muted: #94a3b8;
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4d;
+      --text: #e8eef5;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --accent-dim: #2563c4;
+      --danger: #f87171;
+      --success: #4ade80;
+      --radius: 12px;
+      --font: "Segoe UI", system-ui, sans-serif;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      height: 100%;
-      overflow: hidden;
-      font-family: "Segoe UI", system-ui, sans-serif;
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: var(--font);
       background: var(--bg);
       color: var(--text);
-      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
     }
-    #app {
+
+    body.layout-pc {
       display: flex;
-      flex-direction: column;
-      height: 100%;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 24px;
     }
-    header {
-      flex-shrink: 0;
-      padding: 0.65rem 1rem;
-      background: linear-gradient(180deg, var(--panel) 0%, #0f172a 100%);
-      border-bottom: 2px solid var(--accent);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-      flex-wrap: wrap;
+    body.layout-pc .shell {
+      width: 100%;
+      max-width: 520px;
     }
+
+    body.layout-mobile {
+      padding: 16px 14px 32px;
+    }
+    body.layout-mobile .shell {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .shell { margin: 0 auto; }
+
     h1 {
-      font-size: clamp(1.1rem, 4vw, 1.35rem);
-      font-weight: 800;
-      letter-spacing: 0.04em;
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 8px;
+      letter-spacing: -0.02em;
+    }
+    .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; line-height: 1.45; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .stack { display: flex; flex-direction: column; gap: 12px; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1.05rem;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-monospace, monospace;
     }
-    h1 span { color: var(--accent); }
-    .toolbar {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
+    input[type="text"]::placeholder {
+      text-transform: none;
+      letter-spacing: normal;
+      color: var(--muted);
     }
-    .colors {
-      display: flex;
-      gap: 4px;
-      align-items: center;
+
+    input.name-input {
+      text-transform: none;
+      letter-spacing: normal;
+      font-family: var(--font);
     }
-    .colors button {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 2px solid #fff3;
+
+    button {
       cursor: pointer;
-      transition: transform 0.12s, box-shadow 0.12s;
-    }
-    .colors button:hover, .colors button:focus-visible {
-      transform: scale(1.12);
-      outline: none;
-      box-shadow: 0 0 0 2px var(--accent);
-    }
-    .colors button.active {
-      box-shadow: 0 0 0 3px #fff, 0 0 12px var(--accent);
-      transform: scale(1.08);
-    }
-    .btn {
-      padding: 0.45rem 0.85rem;
       border: none;
       border-radius: 8px;
-      font-size: 0.85rem;
+      padding: 12px 18px;
+      font-size: 1rem;
       font-weight: 600;
-      cursor: pointer;
+      font-family: var(--font);
+      transition: background 0.15s, transform 0.1s;
+    }
+    button:active { transform: scale(0.98); }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
       background: var(--accent);
       color: #fff;
-      transition: filter 0.15s, transform 0.1s;
     }
-    .btn:hover { filter: brightness(1.08); }
-    .btn:active { transform: scale(0.97); }
-    .btn.secondary {
-      background: #334155;
+    .btn-primary:hover:not(:disabled) { background: var(--accent-dim); }
+
+    .btn-secondary {
+      background: var(--border);
       color: var(--text);
     }
-    .slider-wrap {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
-    .slider-wrap input[type="range"] {
-      width: 90px;
-      accent-color: var(--accent);
-    }
-    #stage-wrap {
+    .btn-secondary:hover:not(:disabled) { filter: brightness(1.1); }
+
+    .btn-choice {
       flex: 1;
-      position: relative;
-      min-height: 0;
-      background: #0c0c14;
+      min-width: 120px;
+      padding: 16px;
+      font-size: 1.1rem;
     }
-    #wall {
-      display: block;
-      width: 100%;
-      height: 100%;
-      cursor: crosshair;
-      touch-action: none;
-    }
-    footer {
-      flex-shrink: 0;
-      padding: 0.4rem 1rem;
-      font-size: 0.72rem;
-      color: var(--muted);
+
+    .code-display {
+      font-family: ui-monospace, monospace;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
       text-align: center;
-      background: #0f172a;
+      padding: 16px;
+      background: var(--bg);
+      border-radius: 8px;
+      border: 1px dashed var(--border);
+      user-select: all;
     }
-    @media (max-width: 520px) {
-      header { padding: 0.5rem 0.65rem; }
-      .slider-wrap span { display: none; }
+
+    .msg-error {
+      color: var(--danger);
+      font-size: 0.9rem;
+      margin-top: 8px;
     }
+    .msg-hint { color: var(--muted); font-size: 0.85rem; margin-top: 8px; }
+
+    table.names {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    table.names th, table.names td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    table.names th { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; }
+
+    .hidden { display: none !important; }
+
+    .screen { animation: fade 0.25s ease; }
+    @keyframes fade {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .device-pick .row { margin-top: 8px; }
   </style>
 </head>
 <body>
-  <div id="app">
-    <header>
-      <h1>Gra<span>fittyy</span></h1>
-      <div class="toolbar">
-        <div class="colors" id="palette" aria-label="Renkler"></div>
-        <div class="slider-wrap">
-          <span>Sprey</span>
-          <input type="range" id="size" min="4" max="48" value="18" aria-label="Fırça boyutu" />
-        </div>
-        <button type="button" class="btn secondary" id="undo" title="Son vuruşu geri al">Geri</button>
-        <button type="button" class="btn secondary" id="clear" title="Duvarı temizle">Temizle</button>
-        <button type="button" class="btn" id="save" title="PNG olarak indir">Kaydet</button>
+  <div class="shell">
+    <div id="screen-device" class="screen card device-pick">
+      <h1>Görünüm</h1>
+      <p class="sub">Oyunu nasıl oynayacaksınız?</p>
+      <div class="row">
+        <button type="button" class="btn-primary btn-choice" id="btn-pc">PC</button>
+        <button type="button" class="btn-primary btn-choice" id="btn-mobile">Mobil</button>
       </div>
-    </header>
-    <div id="stage-wrap">
-      <canvas id="wall" aria-label="Çizim alanı"></canvas>
     </div>
-    <footer>Fare veya parmağınla sürükleyerek boya · Grafittyy</footer>
+
+    <div id="screen-lobby" class="screen card hidden">
+      <h1>Resim Oyunu</h1>
+      <p class="sub">Arkadaşlarınla aynı odaya girin. Oda kodu 6 karakterdir.</p>
+      <div class="stack">
+        <div>
+          <button type="button" class="btn-primary" id="btn-create" style="width:100%">Oyun kur</button>
+        </div>
+        <div>
+          <label for="room-code">Oda kodu</label>
+          <input type="text" id="room-code" maxlength="6" placeholder="Örn. FTR12V" autocomplete="off" />
+        </div>
+        <div>
+          <button type="button" class="btn-secondary" id="btn-join" style="width:100%">Oyuna katıl</button>
+          <p id="join-error" class="msg-error hidden"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="screen-host-wait" class="screen card hidden">
+      <h1>Oda hazır</h1>
+      <p class="sub">Kodunu arkadaşlarına gönder. En az 2 kişi (sen dahil) olunca oyuna başlayabilirsin.</p>
+      <p class="label-like" style="margin:0 0 6px;color:var(--muted);font-size:0.8rem;">Oda kodu</p>
+      <div class="code-display" id="host-code-display"></div>
+      <p class="msg-hint" id="host-player-count"></p>
+      <div class="stack" style="margin-top:20px;">
+        <button type="button" class="btn-primary" id="btn-start-game" disabled>Oyuna başla</button>
+        <p class="msg-hint">Maksimum 6 oyuncu (sen dahil).</p>
+      </div>
+    </div>
+
+    <div id="screen-join-wait" class="screen card hidden">
+      <h1>Odada bekleniyor</h1>
+      <p class="sub">Kurucu oyuna başlatınca devam edeceksin.</p>
+      <p class="msg-hint" id="join-wait-status">Bağlantı kuruldu.</p>
+    </div>
+
+    <div id="screen-names" class="screen card hidden">
+      <h1>İsim</h1>
+      <p class="sub">En fazla 10 harf. Masada sadece odaya katılanlar görünür.</p>
+      <div class="stack">
+        <div>
+          <label for="player-name">Adın</label>
+          <input type="text" class="name-input" id="player-name" maxlength="10" placeholder="İsmini yaz" autocomplete="off" />
+        </div>
+        <button type="button" class="btn-primary" id="btn-save-name" style="width:100%">İsmi kaydet</button>
+        <div>
+          <p style="margin:0 0 8px;color:var(--muted);font-size:0.8rem;">Oyuncular</p>
+          <table class="names">
+            <thead><tr><th>#</th><th>İsim</th></tr></thead>
+            <tbody id="names-tbody"></tbody>
+          </table>
+        </div>
+        <button type="button" class="btn-primary hidden" id="btn-names-start" style="width:100%">Başlat</button>
+        <p class="msg-hint hidden" id="names-wait-host">Kurucu başlatınca sonraki adıma geçilecek.</p>
+      </div>
+    </div>
   </div>
+
   <script>
 (function () {
-  const canvas = document.getElementById('wall');
-  const ctx = canvas.getContext('2d', { alpha: false });
-  const paletteEl = document.getElementById('palette');
-  const sizeInput = document.getElementById('size');
-  const COLORS = [
-    '#e94560', '#f39c12', '#2ecc71', '#3498db', '#9b59b6',
-    '#1abc9c', '#ecf0f1', '#f1c40f', '#e74c3c', '#34495e'
-  ];
-  let currentColor = COLORS[0];
-  let drawing = false;
-  const snapshots = [];
-  const MAX_UNDO = 25;
+  const MAX_PLAYERS = 6;
+  const MIN_TO_START = 2;
+  const CODE_LEN = 6;
+  const JOIN_TIMEOUT_MS = 10000;
 
-  function resize() {
-    const wrap = document.getElementById('stage-wrap');
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = wrap.clientWidth;
-    const h = wrap.clientHeight;
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-    canvas.style.width = w + 'px';
-    canvas.style.height = h + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    fillConcrete();
+  const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+  const $ = (id) => document.getElementById(id);
+  const screens = {
+    device: $("screen-device"),
+    lobby: $("screen-lobby"),
+    hostWait: $("screen-host-wait"),
+    joinWait: $("screen-join-wait"),
+    names: $("screen-names"),
+  };
+
+  let layout = null;
+  let peer = null;
+  let role = null;
+  let roomCode = null;
+  let hostConn = null;
+  const guestConnections = new Map();
+  let myName = "";
+  const namesByPeer = new Map();
+  let lastRosterOrder = [];
+
+  function showScreen(name) {
+    Object.values(screens).forEach((el) => el.classList.add("hidden"));
+    screens[name].classList.remove("hidden");
   }
 
-  function fillConcrete() {
-    const w = canvas.width / (window.devicePixelRatio || 1);
-    const h = canvas.height / (window.devicePixelRatio || 1);
-    const g = ctx.createLinearGradient(0, 0, w, h);
-    g.addColorStop(0, '#3d3d52');
-    g.addColorStop(1, '#2a2a3e');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-    ctx.save();
-    ctx.globalAlpha = 0.06;
-    for (let i = 0; i < 400; i++) {
-      ctx.fillStyle = Math.random() > 0.5 ? '#000' : '#fff';
-      ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+  function generateCode() {
+    let s = "";
+    for (let i = 0; i < CODE_LEN; i++) {
+      s += CHARS[Math.floor(Math.random() * CHARS.length)];
     }
-    ctx.restore();
+    return s;
   }
 
-  function pushSnapshot() {
-    try {
-      snapshots.push(canvas.toDataURL('image/png'));
-      while (snapshots.length > MAX_UNDO) snapshots.shift();
-    } catch (e) { /* ignore */ }
+  function normalizeCode(raw) {
+    return String(raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LEN);
   }
 
-  function spray(x, y, radius, color) {
-    const n = Math.max(8, Math.floor(radius * 2.5));
-    for (let i = 0; i < n; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const r = Math.random() * radius;
-      const px = x + Math.cos(a) * r * 0.85;
-      const py = y + Math.sin(a) * r * 0.85;
-      const dot = 0.5 + Math.random() * (radius * 0.12);
-      ctx.fillStyle = color;
-      ctx.globalAlpha = 0.15 + Math.random() * 0.35;
-      ctx.beginPath();
-      ctx.arc(px, py, dot, 0, Math.PI * 2);
-      ctx.fill();
+  function sanitizeName(raw) {
+    const t = String(raw || "").trim().slice(0, 10);
+    return t;
+  }
+
+  function setJoinError(msg) {
+    const el = $("join-error");
+    if (!msg) {
+      el.classList.add("hidden");
+      el.textContent = "";
+    } else {
+      el.textContent = msg;
+      el.classList.remove("hidden");
     }
-    ctx.globalAlpha = 1;
   }
 
-  function clientToCanvas(clientX, clientY) {
-    const r = canvas.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    return {
-      x: (clientX - r.left) * (canvas.width / dpr) / r.width,
-      y: (clientY - r.top) * (canvas.height / dpr) / r.height
-    };
+  function updateHostUi() {
+    const count = 1 + guestConnections.size;
+    $("host-player-count").textContent = `Oyuncu: ${count} / ${MAX_PLAYERS}`;
+    $("btn-start-game").disabled = count < MIN_TO_START;
   }
 
-  function onDown(e) {
-    e.preventDefault();
-    drawing = true;
-    pushSnapshot();
-    const p = 'touches' in e
-      ? clientToCanvas(e.touches[0].clientX, e.touches[0].clientY)
-      : clientToCanvas(e.clientX, e.clientY);
-    const r = +sizeInput.value;
-    spray(p.x, p.y, r, currentColor);
-  }
-
-  function onMove(e) {
-    if (!drawing) return;
-    e.preventDefault();
-    const p = 'touches' in e
-      ? clientToCanvas(e.touches[0].clientX, e.touches[0].clientY)
-      : clientToCanvas(e.clientX, e.clientY);
-    const r = +sizeInput.value;
-    spray(p.x, p.y, r, currentColor);
-  }
-
-  function onUp(e) {
-    if (e.cancelable) e.preventDefault();
-    drawing = false;
-  }
-
-  COLORS.forEach((c, i) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.style.background = c;
-    b.setAttribute('aria-label', 'Renk ' + (i + 1));
-    if (i === 0) b.classList.add('active');
-    b.addEventListener('click', () => {
-      paletteEl.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
-      b.classList.add('active');
-      currentColor = c;
+  function broadcastFromHost(msg, exceptConn) {
+    guestConnections.forEach((meta) => {
+      if (meta.conn !== exceptConn && meta.conn.open) {
+        try { meta.conn.send(msg); } catch (_) {}
+      }
     });
-    paletteEl.appendChild(b);
-  });
+  }
 
-  document.getElementById('clear').addEventListener('click', () => {
-    pushSnapshot();
-    fillConcrete();
-  });
+  function sendToHost(msg) {
+    if (hostConn && hostConn.open) hostConn.send(msg);
+  }
 
-  document.getElementById('undo').addEventListener('click', () => {
-    const url = snapshots.pop();
-    if (!url) return;
-    const img = new Image();
-    img.onload = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const w = canvas.width / dpr;
-      const h = canvas.height / dpr;
-      ctx.clearRect(0, 0, w, h);
-      ctx.drawImage(img, 0, 0, w, h);
+  function renderNamesTable(orderIds) {
+    const tbody = $("names-tbody");
+    tbody.innerHTML = "";
+    let i = 1;
+    orderIds.forEach((pid) => {
+      const n = namesByPeer.get(pid);
+      const display = n && String(n).trim() ? escapeHtml(String(n).trim()) : "—";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${i++}</td><td>${display}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function destroyPeer() {
+    if (peer) {
+      try { peer.destroy(); } catch (_) {}
+    }
+    peer = null;
+    hostConn = null;
+    guestConnections.clear();
+  }
+
+  function attachConnHandlers(conn, isHostSide) {
+    conn.on("data", (data) => {
+      handleMessage(data, conn, isHostSide);
+    });
+    conn.on("close", () => {
+      if (isHostSide) {
+        guestConnections.delete(conn.peer);
+        broadcastFromHost({ type: "roster", peerId: conn.peer, left: true });
+        updateHostUi();
+        syncNamesHost();
+      } else {
+        hostConn = null;
+        setJoinError("Bağlantı koptu. Tekrar dene.");
+        showScreen("lobby");
+      }
+    });
+    conn.on("error", () => {});
+  }
+
+  function handleMessage(data, conn, isHostSide) {
+    if (!data || typeof data.type !== "string") return;
+
+    if (isHostSide) {
+      if (data.type === "hello") {
+        return;
+      }
+      if (data.type === "set_name") {
+        const name = sanitizeName(data.name);
+        if (!name) return;
+        const meta = guestConnections.get(conn.peer);
+        if (meta) meta.name = name;
+        namesByPeer.set(conn.peer, name);
+        syncNamesHost();
+        broadcastFromHost({
+          type: "names_state",
+          names: Object.fromEntries(namesByPeer),
+          order: rosterOrderHost(),
+        });
+      }
+      return;
+    }
+
+    if (data.type === "phase") {
+      if (data.phase === "names") {
+        namesByPeer.clear();
+        if (data.names) {
+          Object.entries(data.names).forEach(([k, v]) => namesByPeer.set(k, v));
+        }
+        lastRosterOrder = data.order || [];
+        enterNamesPhase(data.iAmHost === true, lastRosterOrder);
+      }
+      return;
+    }
+    if (data.type === "names_state") {
+      namesByPeer.clear();
+      Object.entries(data.names || {}).forEach(([k, v]) => namesByPeer.set(k, v));
+      lastRosterOrder = data.order || lastRosterOrder;
+      renderNamesTable(lastRosterOrder);
+      return;
+    }
+    if (data.type === "next_from_host") {
+      $("names-wait-host").classList.remove("hidden");
+      return;
+    }
+  }
+
+  function rosterOrderHost() {
+    const ids = [peer.id, ...Array.from(guestConnections.keys())];
+    return ids;
+  }
+
+  function syncNamesHost() {
+    const order = rosterOrderHost();
+    broadcastFromHost({
+      type: "names_state",
+      names: Object.fromEntries(namesByPeer),
+      order,
+    });
+    renderNamesTable(order);
+  }
+
+  function enterNamesPhase(isHost, initialOrder) {
+    showScreen("names");
+    myName = "";
+    $("player-name").value = "";
+    $("btn-names-start").classList.toggle("hidden", !isHost);
+    $("names-wait-host").classList.toggle("hidden", isHost);
+    if (isHost) {
+      namesByPeer.set(peer.id, "");
+      renderNamesTable(rosterOrderHost());
+    } else {
+      lastRosterOrder = initialOrder.length ? initialOrder : lastRosterOrder;
+      renderNamesTable(lastRosterOrder);
+    }
+  }
+
+  function openPeerAsHost(attemptsLeft) {
+    const code = generateCode();
+    destroyPeer();
+    peer = new Peer(code, {
+      debug: 0,
+    });
+
+    peer.on("open", (id) => {
+      roomCode = id;
+      $("host-code-display").textContent = roomCode;
+      updateHostUi();
+      showScreen("hostWait");
+    });
+
+    peer.on("error", (err) => {
+      if (err.type === "unavailable-id" && attemptsLeft > 0) {
+        openPeerAsHost(attemptsLeft - 1);
+      } else {
+        alert("Oda açılamadı. Tekrar dene.");
+        showScreen("lobby");
+      }
+    });
+
+    peer.on("connection", (conn) => {
+      if (guestConnections.size >= MAX_PLAYERS - 1) {
+        conn.on("open", () => {
+          try {
+            conn.send({ type: "kick", reason: "full" });
+          } catch (_) {}
+          conn.close();
+        });
+        return;
+      }
+
+      conn.on("open", () => {
+        guestConnections.set(conn.peer, { conn, name: "" });
+        attachConnHandlers(conn, true);
+        conn.send({ type: "hello_ok" });
+        updateHostUi();
+        broadcastFromHost({ type: "roster_tick", count: 1 + guestConnections.size });
+      });
+    });
+  }
+
+  function joinRoom(code) {
+    setJoinError("");
+    destroyPeer();
+    peer = new Peer(undefined, { debug: 0 });
+
+    const fail = (msg) => {
+      destroyPeer();
+      setJoinError(msg);
     };
-    img.src = url;
+
+    peer.on("error", (e) => {
+      if (e.type === "peer-unavailable" || e.type === "network") {
+        fail("Böyle bir kod yok:(");
+      }
+    });
+
+    peer.on("open", () => {
+      const conn = peer.connect(code, { reliable: true });
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        try { conn.close(); } catch (_) {}
+        fail("Böyle bir kod yok:(");
+      }, JOIN_TIMEOUT_MS);
+
+      conn.on("open", () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        hostConn = conn;
+        attachConnHandlers(conn, false);
+        conn.send({ type: "hello" });
+        showScreen("joinWait");
+        $("join-wait-status").textContent = "Bağlandın. Kurucunun başlatmasını bekle.";
+      });
+
+      conn.on("data", (data) => {
+        if (data && data.type === "kick" && data.reason === "full") {
+          fail("Oda dolu (en fazla 6 kişi).");
+        }
+      });
+
+      conn.on("error", () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        fail("Böyle bir kod yok:(");
+      });
+
+      conn.on("close", () => {
+        if (settled && hostConn === conn && !screens.joinWait.classList.contains("hidden")) {
+          $("join-wait-status").textContent = "Bağlantı kapandı.";
+        }
+      });
+    });
+  }
+
+  $("btn-pc").addEventListener("click", () => {
+    layout = "pc";
+    document.body.classList.remove("layout-mobile");
+    document.body.classList.add("layout-pc");
+    showScreen("lobby");
   });
 
-  document.getElementById('save').addEventListener('click', () => {
-    const a = document.createElement('a');
-    a.download = 'grafittyy-' + Date.now() + '.png';
-    a.href = canvas.toDataURL('image/png');
-    a.click();
+  $("btn-mobile").addEventListener("click", () => {
+    layout = "mobile";
+    document.body.classList.remove("layout-pc");
+    document.body.classList.add("layout-mobile");
+    showScreen("lobby");
   });
 
-  canvas.addEventListener('mousedown', onDown);
-  window.addEventListener('mousemove', onMove);
-  window.addEventListener('mouseup', onUp);
-  canvas.addEventListener('touchstart', onDown, { passive: false });
-  canvas.addEventListener('touchmove', onMove, { passive: false });
-  canvas.addEventListener('touchend', onUp);
-  canvas.addEventListener('touchcancel', onUp);
+  $("btn-create").addEventListener("click", () => {
+    role = "host";
+    setJoinError("");
+    openPeerAsHost(12);
+  });
 
-  window.addEventListener('resize', resize);
-  resize();
+  $("btn-join").addEventListener("click", () => {
+    role = "guest";
+    const code = normalizeCode($("room-code").value);
+    if (code.length !== CODE_LEN) {
+      setJoinError("Kod tam olarak 6 karakter olmalı.");
+      return;
+    }
+    joinRoom(code);
+  });
+
+  $("btn-start-game").addEventListener("click", () => {
+    if (role !== "host" || !peer) return;
+    const count = 1 + guestConnections.size;
+    if (count < MIN_TO_START) return;
+
+    namesByPeer.clear();
+    namesByPeer.set(peer.id, "");
+    guestConnections.forEach((_, guestId) => {
+      namesByPeer.set(guestId, "");
+    });
+
+    const order = rosterOrderHost();
+    const payload = {
+      type: "phase",
+      phase: "names",
+      names: Object.fromEntries(namesByPeer),
+      order,
+      iAmHost: false,
+    };
+    broadcastFromHost(payload);
+    enterNamesPhase(true, order);
+  });
+
+  $("btn-save-name").addEventListener("click", () => {
+    const name = sanitizeName($("player-name").value);
+    if (!name) {
+      alert("Lütfen bir isim gir (en fazla 10 harf).");
+      return;
+    }
+    myName = name;
+    if (role === "host" && peer) {
+      namesByPeer.set(peer.id, name);
+      syncNamesHost();
+    } else {
+      namesByPeer.set(peer.id, name);
+      sendToHost({ type: "set_name", name });
+      renderNamesTable(lastRosterOrder);
+    }
+  });
+
+  $("btn-names-start").addEventListener("click", () => {
+    if (role !== "host") return;
+    broadcastFromHost({ type: "next_from_host" });
+  });
+
+  window.addEventListener("beforeunload", () => destroyPeer());
 })();
   </script>
 </body>
