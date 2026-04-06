@@ -1101,7 +1101,6 @@
     const dataUrl = captureDrawingDataUrl();
     if (role === "host" && peer) {
       hostRoundDrawings.set(peer.id, dataUrl);
-      hostTryProceedToGallery(roundId, false);
     } else {
       sendToHost({ type: "submit_drawing", roundId, imageDataUrl: dataUrl });
     }
@@ -1535,7 +1534,6 @@
       if (data.type === "submit_drawing") {
         if (!data.roundId || data.roundId !== currentRoundId) return;
         hostRoundDrawings.set(conn.peer, data.imageDataUrl || EMPTY_PNG);
-        hostTryProceedToGallery(currentRoundId);
         return;
       }
       if (data.type === "submit_vote") {
