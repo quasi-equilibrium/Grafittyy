@@ -313,6 +313,163 @@
       cursor: crosshair;
       touch-action: none;
     }
+    #draw-canvas.draw-locked { cursor: not-allowed; opacity: 0.92; }
+    .draw-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .draw-count-big {
+      font-size: clamp(4rem, 18vw, 7rem);
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    .draw-topic-chip {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 6;
+      pointer-events: none;
+      background: rgba(26,35,50,0.92);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      max-width: 92%;
+      text-align: center;
+    }
+    .draw-timer-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 4px;
+      background: var(--accent);
+      z-index: 6;
+      pointer-events: none;
+      transition: width 0.05s linear;
+    }
+
+    #screen-gallery, #screen-podium {
+      position: fixed;
+      inset: 0;
+      z-index: 110;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+    }
+    .gal-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    .gal-head h2 { margin: 0 0 6px; font-size: 1.1rem; }
+    .gal-topic { color: var(--accent); font-weight: 700; font-size: 1rem; }
+    .gal-fake {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 8px 0 4px;
+      color: var(--text);
+    }
+    .gal-sub { color: var(--muted); font-size: 0.8rem; margin-bottom: 12px; }
+    .gal-img-wrap {
+      flex: 1;
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      background: #0a0e14;
+    }
+    .gal-img-wrap img {
+      max-width: 100%;
+      max-height: min(52vh, 420px);
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: #fafafa;
+    }
+    .gal-stars {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 16px 12px 24px;
+      flex-wrap: wrap;
+    }
+    .gal-stars button {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      background: #334155;
+      color: transparent;
+      font-size: 0;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.15s, border-color 0.15s;
+    }
+    .gal-stars button:hover:not(:disabled) {
+      transform: scale(1.08);
+      border-color: var(--accent);
+    }
+    .gal-stars button.voted {
+      background: linear-gradient(180deg, #fde047, #eab308);
+      border-color: #ca8a04;
+    }
+    .gal-stars button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .gal-progress {
+      height: 3px;
+      background: var(--border);
+    }
+    .gal-progress > i {
+      display: block;
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    .pod-wrap { padding: 20px 16px 32px; max-width: 480px; margin: 0 auto; text-align: center; }
+    .pod-title { font-size: 1.75rem; font-weight: 800; margin-bottom: 8px; color: var(--accent); }
+    .pod-you { color: var(--muted); margin-bottom: 20px; font-size: 0.95rem; }
+    .pod-step {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 24px;
+      min-height: 180px;
+    }
+    .pod-pillar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 30%;
+      max-width: 140px;
+    }
+    .pod-bar {
+      width: 100%;
+      border-radius: 8px 8px 0 0;
+      background: linear-gradient(180deg, var(--accent-dim), var(--accent));
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 8px;
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.5rem;
+    }
+    .pod-pillar:nth-child(1) .pod-bar { height: 100px; order: 2; }
+    .pod-pillar:nth-child(2) .pod-bar { height: 140px; order: 2; }
+    .pod-pillar:nth-child(3) .pod-bar { height: 72px; order: 2; }
+    .pod-pillar .av-cell svg { width: 56px; height: 56px; }
+    .pod-name { font-weight: 700; margin-top: 8px; font-size: 0.9rem; }
+    .pod-stars { color: #fde047; font-size: 0.85rem; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -417,11 +574,33 @@
         </div>
         <button type="button" class="btn-draw ghost" id="draw-undo">Geri</button>
         <button type="button" class="btn-draw ghost" id="draw-clear">Temizle</button>
-        <button type="button" class="btn-draw primary" id="draw-save">Kaydet</button>
       </div>
     </div>
-    <div id="draw-wrap">
+    <div id="draw-wrap" style="position:relative;">
+      <div class="draw-topic-chip hidden" id="draw-topic-chip"></div>
+      <div class="draw-overlay hidden" id="draw-count-overlay"><span class="draw-count-big" id="draw-count-num"></span></div>
+      <div class="draw-timer-bar" id="draw-timer-bar" style="width:0%;"></div>
       <canvas id="draw-canvas" aria-label="Çizim alanı"></canvas>
+    </div>
+  </div>
+
+  <div id="screen-gallery" class="screen hidden">
+    <div class="gal-head">
+      <h2>Sergi — gizli isimler</h2>
+      <p class="gal-topic" id="gal-topic"></p>
+      <p class="gal-fake" id="gal-artist"></p>
+      <p class="gal-sub" id="gal-slot-hint"></p>
+    </div>
+    <div class="gal-progress"><i id="gal-slot-progress"></i></div>
+    <div class="gal-img-wrap"><img id="gal-image" alt="Çizim" /></div>
+    <div class="gal-stars" id="gal-stars" aria-label="Puan"></div>
+  </div>
+
+  <div id="screen-podium" class="screen hidden">
+    <div class="pod-wrap">
+      <p class="pod-title">Podyum</p>
+      <p class="pod-you" id="pod-your-rank"></p>
+      <div class="pod-step" id="pod-step"></div>
     </div>
   </div>
 
@@ -443,7 +622,43 @@
     names: $("screen-names"),
     avatar: $("screen-avatar"),
     draw: $("screen-draw"),
+    gallery: $("screen-gallery"),
+    podium: $("screen-podium"),
   };
+
+  const COUNTDOWN_SEC = 3;
+  const DRAW_SEC = 2;
+  const GALLERY_SLOT_SEC = 12;
+  const PODIUM_SHOW_SEC = 10;
+
+  const TOPICS = [
+    "İnternet mizahı (meme)", "Film karakterleri", "Hayvanlar", "Meyveler", "Sporlar",
+    "Ünlü binalar", "Uzay", "Deniz canlıları", "Süper kahramanlar", "Çizgi film",
+    "Mitoloji", "Kış sporları", "Müzik aletleri", "Meslekler", "Tatlılar",
+    "Efsanevi yaratıklar", "Araçlar", "Bitkiler", "Korku filmi", "Bilim kurgu",
+    "Video oyunu", "Klasik resim", "Selfie ifadesi", "Emoji", "Logo tarzı",
+    "Kış manzarası", "Yaz manzarası", "Şehir silüeti", "Robot", "Dinozor",
+    "Pizza malzemeleri", "Kahvaltı", "Korsan gemisi", "Büyücü", "Ninja",
+    "Kale", "Uçak", "Tren", "Gökkuşağı", "Yıldızlar", "Gezegenler",
+    "Kutup hayvanları", "Çöl", "Orman", "Sahil", "Dağ zirvesi",
+    "Komedya", "Dram", "Macera", "Gizem", "Fantastik ev",
+    "Süpermarket ürünü", "Kahve fincanı", "Masal kahramanı", "Hava durumu", "Kıyafet",
+  ];
+
+  const FAKE_POOL = [
+    "Sanatçı_07", "ÇizginKedi", "NeonKuş", "TurboFırça", "GizliUsta",
+    "PixelRuh", "MaviKalem", "TuruncuHayal", "GeceÇizeri", "SessizFikir",
+    "DalgaAdam", "Yıldızİzi", "BulutAvcısı", "KırmızıFikir", "YeşilHayal",
+    "DijitalRüya", "KağıtEjder", "TuvalSavaşçı", "RenkAvcısı", "ÇizgiKahraman",
+    "GölgeUsta", "ParlakZihin", "HızlıEl", "YavaşSanat", "MiniPicasso",
+    "RetroÇizer", "VektörRuh", "PastelGizem", "KoyuÇizgi", "AçıkFikir",
+    "SisliSanat", "GüneşKalem", "AyIşığı", "DenizKalem", "OrmanFırça",
+    "ÇölRüzgarı", "BuzPatenci", "AteşKuşu", "ToprakUsta", "MetalFikir",
+    "CamHayal", "TaşSanat", "AhşapRuh", "İpekÇizgi", "KetenFırça",
+    "PamukBulut", "KetenGölge", "İpekIşık", "YünRüya", "KetenYıldız",
+    "GizemliX", "AnonimY", "ZetaSanat", "OmegaÇizgi", "DeltaRenk",
+    "SigmaFikir", "LambdaEl", "ThetaHayal", "KappaKuş", "GammaDalga",
+  ];
 
   const AVATAR_COUNT = 10;
   /** @type {string[]} */
@@ -465,25 +680,76 @@
   let myAvatarLocked = false;
   let nameSaved = false;
 
+  let currentRoundId = null;
+  let drawCountdownTimer = null;
+  let drawPhaseTimer = null;
+  let gallerySlotTimer = null;
+  let galleryProgressInterval = null;
+  let podiumTimer = null;
+  let hostGalleryTimer = null;
+  let hostPodiumTimer = null;
+  let hostCurrentTopic = "";
+  /** @type {Map<string, string>} */
+  const hostRoundDrawings = new Map();
+  /** @type {Map<string, Map<string, number>>} target -> voter -> stars */
+  const hostVotes = new Map();
+  /** @type {{ peerId: string, imageDataUrl: string, fakeName: string }[]} */
+  let gallerySlots = [];
+
+  function clearGameTimers() {
+    [drawCountdownTimer, drawPhaseTimer, gallerySlotTimer, podiumTimer, hostGalleryTimer, hostPodiumTimer].forEach((t) => {
+      if (t) clearTimeout(t);
+    });
+    if (galleryProgressInterval) clearInterval(galleryProgressInterval);
+    drawCountdownTimer = drawPhaseTimer = gallerySlotTimer = podiumTimer = hostGalleryTimer = hostPodiumTimer = null;
+    galleryProgressInterval = null;
+  }
+
   function showScreen(name) {
     const shell = document.querySelector(".shell");
-    if (name === "draw") {
+    const full = ["draw", "gallery", "podium"];
+    if (full.includes(name)) {
       shell?.classList.add("hidden");
       Object.keys(screens).forEach((k) => {
-        if (k === "draw") screens.draw.classList.remove("hidden");
-        else screens[k].classList.add("hidden");
+        screens[k].classList.toggle("hidden", k !== name);
       });
-      requestAnimationFrame(() => {
-        resizeDrawCanvas();
-      });
+      if (name === "draw") {
+        requestAnimationFrame(() => resizeDrawCanvas());
+      }
       return;
     }
     shell?.classList.remove("hidden");
     screens.draw.classList.add("hidden");
+    screens.gallery.classList.add("hidden");
+    screens.podium.classList.add("hidden");
     const orderKeys = ["device", "lobby", "hostWait", "joinWait", "names", "avatar"];
     orderKeys.forEach((k) => {
       screens[k].classList.toggle("hidden", k !== name);
     });
+  }
+
+  function pickTopic() {
+    return TOPICS[Math.floor(Math.random() * TOPICS.length)];
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function assignFakeNames(peerIds) {
+    const pool = shuffle(FAKE_POOL);
+    const map = {};
+    let pi = 0;
+    peerIds.forEach((id) => {
+      map[id] = pool[pi % pool.length] + "_" + (pi + 1);
+      pi++;
+    });
+    return map;
   }
 
   function buildAvatarSvgs() {
@@ -589,8 +855,12 @@
   let drawColor = "#3d8bfd";
   let drawDrawing = false;
   let drawLast = null;
+  let gameDrawLocked = true;
   const drawSnapshots = [];
   const DRAW_COLORS = ["#3d8bfd", "#e94560", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#ecf0f1", "#34495e"];
+
+  const EMPTY_PNG =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
   function resizeDrawCanvas() {
     if (!drawCanvas || screens.draw.classList.contains("hidden")) return;
@@ -661,13 +931,14 @@
       }
 
       function onDown(e) {
+        if (gameDrawLocked) return;
         e.preventDefault();
         drawDrawing = true;
         pushDrawSnap();
         drawLast = pos(e);
       }
       function onMove(e) {
-        if (!drawDrawing) return;
+        if (gameDrawLocked || !drawDrawing) return;
         e.preventDefault();
         const p = pos(e);
         if (drawLast) lineTo(drawLast, p);
@@ -688,6 +959,7 @@
       drawCanvas.addEventListener("touchcancel", onUp);
 
       $("draw-undo").addEventListener("click", () => {
+        if (gameDrawLocked) return;
         const url = drawSnapshots.pop();
         if (!url) return;
         const img = new Image();
@@ -702,6 +974,7 @@
       });
 
       $("draw-clear").addEventListener("click", () => {
+        if (gameDrawLocked) return;
         pushDrawSnap();
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const w = drawCanvas.width / dpr;
@@ -710,25 +983,381 @@
         drawCtx.fillRect(0, 0, w, h);
       });
 
-      $("draw-save").addEventListener("click", () => {
-        const a = document.createElement("a");
-        a.download = "resim-" + Date.now() + ".png";
-        a.href = drawCanvas.toDataURL("image/png");
-        a.click();
-      });
-
       window.addEventListener("resize", () => {
         if (!screens.draw.classList.contains("hidden")) resizeDrawCanvas();
       });
     }
 
     drawSnapshots.length = 0;
+    gameDrawLocked = true;
+    drawCanvas?.classList.add("draw-locked");
+    $("draw-count-overlay").classList.add("hidden");
+    $("draw-topic-chip").classList.add("hidden");
+    $("draw-timer-bar").style.width = "0%";
     resizeDrawCanvas();
   }
 
   function enterDrawPhase() {
     showScreen("draw");
     initDrawBoard();
+  }
+
+  function captureDrawingDataUrl() {
+    try {
+      return drawCanvas.toDataURL("image/png");
+    } catch (_) {
+      return EMPTY_PNG;
+    }
+  }
+
+  function runDrawCountdownAndDraw(roundId, topic) {
+    clearGameTimers();
+    gameDrawLocked = true;
+    drawCanvas?.classList.add("draw-locked");
+    $("draw-topic-chip").classList.add("hidden");
+    $("draw-timer-bar").style.width = "0%";
+    $("draw-count-overlay").classList.remove("hidden");
+    let n = COUNTDOWN_SEC;
+    $("draw-count-num").textContent = String(n);
+    const tick = () => {
+      if (currentRoundId !== roundId) return;
+      if (n <= 0) {
+        $("draw-count-overlay").classList.add("hidden");
+        $("draw-topic-chip").textContent = "Konu: " + topic;
+        $("draw-topic-chip").classList.remove("hidden");
+        gameDrawLocked = false;
+        drawCanvas?.classList.remove("draw-locked");
+        const start = Date.now();
+        const bar = $("draw-timer-bar");
+        const tickBar = () => {
+          if (currentRoundId !== roundId) return;
+          const elapsed = Date.now() - start;
+          const p = Math.min(100, (elapsed / (DRAW_SEC * 1000)) * 100);
+          bar.style.width = p + "%";
+          if (elapsed < DRAW_SEC * 1000) requestAnimationFrame(tickBar);
+        };
+        tickBar();
+        drawPhaseTimer = setTimeout(() => finishLocalDrawing(roundId), DRAW_SEC * 1000);
+        return;
+      }
+      drawCountdownTimer = setTimeout(() => {
+        n -= 1;
+        $("draw-count-num").textContent = n > 0 ? String(n) : "Çiz!";
+        tick();
+      }, 1000);
+    };
+    tick();
+  }
+
+  function finishLocalDrawing(roundId) {
+    if (currentRoundId !== roundId) return;
+    gameDrawLocked = true;
+    drawCanvas?.classList.add("draw-locked");
+    $("draw-timer-bar").style.width = "100%";
+    const dataUrl = captureDrawingDataUrl();
+    if (role === "host" && peer) {
+      hostRoundDrawings.set(peer.id, dataUrl);
+      hostTryProceedToGallery(roundId, false);
+    } else {
+      sendToHost({ type: "submit_drawing", roundId, imageDataUrl: dataUrl });
+    }
+  }
+
+  function startRoundFromHost() {
+    if (role !== "host" || !peer) return;
+    clearGameTimers();
+    if (hostPodiumTimer) {
+      clearTimeout(hostPodiumTimer);
+      hostPodiumTimer = null;
+    }
+    if (podiumTimer) {
+      clearTimeout(podiumTimer);
+      podiumTimer = null;
+    }
+    const order = rosterOrderHost();
+    const roundId = "r" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+    const topic = pickTopic();
+    hostCurrentTopic = topic;
+    hostRoundDrawings.clear();
+    hostVotes.clear();
+    order.forEach((pid) => hostVotes.set(pid, new Map()));
+    broadcastFromHost({
+      type: "round_start",
+      roundId,
+      topic,
+      order,
+    });
+    currentRoundId = roundId;
+    enterDrawPhase();
+    $("draw-title").textContent = "Çizim — " + ((myName && myName.trim()) || "Oyuncu");
+    runDrawCountdownAndDraw(roundId, topic);
+    hostGalleryTimer = setTimeout(() => {
+      hostGalleryTimer = null;
+      hostTryProceedToGallery(roundId, true);
+    }, (COUNTDOWN_SEC + DRAW_SEC + 1.5) * 1000);
+  }
+
+  function hostTryProceedToGallery(roundId, forceFill) {
+    if (role !== "host" || currentRoundId !== roundId) return;
+    const order = rosterOrderHost();
+    if (forceFill) {
+      order.forEach((pid) => {
+        if (!hostRoundDrawings.has(pid)) hostRoundDrawings.set(pid, EMPTY_PNG);
+      });
+    }
+    let ready = true;
+    order.forEach((pid) => {
+      if (!hostRoundDrawings.has(pid)) ready = false;
+    });
+    if (!ready) return;
+    if (hostGalleryTimer) {
+      clearTimeout(hostGalleryTimer);
+      hostGalleryTimer = null;
+    }
+    const fakeNamesMap = assignFakeNames(order);
+    const shuffled = shuffle(order.slice());
+    gallerySlots = shuffled.map((peerId) => ({
+      peerId,
+      fakeName: fakeNamesMap[peerId] || "Sanatçı",
+      imageDataUrl: hostRoundDrawings.get(peerId) || EMPTY_PNG,
+    }));
+    broadcastFromHost({
+      type: "gallery_start",
+      roundId,
+      topic: hostCurrentTopic,
+      slotCount: gallerySlots.length,
+    });
+    hostRunGallerySlot(roundId, hostCurrentTopic, 0);
+  }
+
+  function fixGalleryTopicFromPayload(topic) {
+    $("gal-topic").textContent = "Konu: " + topic;
+  }
+
+  function buildStarButtons(onPick) {
+    const wrap = $("gal-stars");
+    wrap.innerHTML = "";
+    for (let s = 1; s <= 5; s++) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = "★";
+      b.setAttribute("aria-label", s + " yıldız");
+      b.title = s + " yıldız";
+      b.addEventListener("click", () => onPick(s));
+      wrap.appendChild(b);
+    }
+  }
+
+  function showGallerySlot(roundId, slotIndex, topic, fakeName, imageDataUrl, artistPeerId) {
+    if (currentRoundId !== roundId) return;
+    fixGalleryTopicFromPayload(topic);
+    $("gal-artist").textContent = fakeName;
+    $("gal-image").src = imageDataUrl || EMPTY_PNG;
+    $("gal-slot-hint").textContent = "Bu çizim konuya ne kadar uyuyor?";
+    const starsWrap = $("gal-stars");
+    starsWrap.innerHTML = "";
+    const own = peer && artistPeerId === peer.id;
+    if (own) {
+      $("gal-slot-hint").textContent = "Bu senin çizimin — puan veremezsin.";
+      for (let s = 1; s <= 5; s++) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.disabled = true;
+        b.textContent = "★";
+        starsWrap.appendChild(b);
+      }
+      return;
+    }
+    buildStarButtons((stars) => {
+      starsWrap.querySelectorAll("button").forEach((btn, i) => {
+        btn.classList.toggle("voted", i < stars);
+      });
+      if (role === "host" && peer) {
+        recordHostVote(artistPeerId, peer.id, stars);
+      } else {
+        sendToHost({ type: "submit_vote", roundId, artistPeerId, stars });
+      }
+    });
+  }
+
+  function recordHostVote(artistPeerId, voterPeerId, stars) {
+    if (artistPeerId === voterPeerId) return;
+    const m = hostVotes.get(artistPeerId);
+    if (m) m.set(voterPeerId, stars);
+  }
+
+  function startGalleryProgressBar(roundId) {
+    if (galleryProgressInterval) clearInterval(galleryProgressInterval);
+    const start = Date.now();
+    const prog = $("gal-slot-progress");
+    prog.style.width = "0%";
+    galleryProgressInterval = setInterval(() => {
+      if (currentRoundId !== roundId) {
+        clearInterval(galleryProgressInterval);
+        galleryProgressInterval = null;
+        return;
+      }
+      const p = Math.min(100, ((Date.now() - start) / (GALLERY_SLOT_SEC * 1000)) * 100);
+      prog.style.width = p + "%";
+    }, 80);
+  }
+
+  function hostRunGallerySlot(roundId, topic, index) {
+    if (gallerySlotTimer) clearTimeout(gallerySlotTimer);
+    if (galleryProgressInterval) clearInterval(galleryProgressInterval);
+    galleryProgressInterval = null;
+    if (currentRoundId !== roundId || !gallerySlots.length) return;
+    if (index >= gallerySlots.length) {
+      hostFinishGallery(roundId, topic);
+      return;
+    }
+    const slot = gallerySlots[index];
+    broadcastFromHost({
+      type: "gallery_slot",
+      roundId,
+      topic,
+      slotIndex: index,
+      fakeName: slot.fakeName,
+      imageDataUrl: slot.imageDataUrl,
+      artistPeerId: slot.peerId,
+      slotCount: gallerySlots.length,
+    });
+    showScreen("gallery");
+    showGallerySlot(roundId, index, topic, slot.fakeName, slot.imageDataUrl, slot.peerId);
+    startGalleryProgressBar(roundId);
+    gallerySlotTimer = setTimeout(() => {
+      gallerySlotTimer = null;
+      if (galleryProgressInterval) clearInterval(galleryProgressInterval);
+      galleryProgressInterval = null;
+      hostRunGallerySlot(roundId, topic, index + 1);
+    }, GALLERY_SLOT_SEC * 1000);
+  }
+
+  function hostFinishGallery(roundId, topic) {
+    if (role !== "host" || currentRoundId !== roundId) return;
+    setTimeout(() => computeAndBroadcastPodium(roundId, topic), 400);
+  }
+
+  function computeAndBroadcastPodium(roundId, topic) {
+    if (hostPodiumTimer) {
+      clearTimeout(hostPodiumTimer);
+      hostPodiumTimer = null;
+    }
+    const order = rosterOrderHost();
+    const totals = new Map();
+    order.forEach((pid) => totals.set(pid, 0));
+    order.forEach((artist) => {
+      const vm = hostVotes.get(artist);
+      if (!vm) return;
+      vm.forEach((stars, voter) => {
+        if (voter === artist) return;
+        const st = Math.max(0, Math.min(5, Number(stars) || 0));
+        totals.set(artist, (totals.get(artist) || 0) + st);
+      });
+    });
+    const ranking = order
+      .map((pid) => ({
+        peerId: pid,
+        stars: totals.get(pid) || 0,
+        name: (namesByPeer.get(pid) || "").trim() || "Oyuncu",
+        avatarIndex: avatarByPeer.get(pid),
+      }))
+      .sort((a, b) => b.stars - a.stars || (a.peerId < b.peerId ? -1 : 1));
+    broadcastFromHost({
+      type: "podium_show",
+      roundId,
+      topic,
+      ranking,
+    });
+    showPodiumUi(ranking);
+    if (hostPodiumTimer) clearTimeout(hostPodiumTimer);
+    hostPodiumTimer = setTimeout(() => {
+      hostPodiumTimer = null;
+      returnToLobbyUi();
+    }, PODIUM_SHOW_SEC * 1000);
+  }
+
+  function showPodiumUi(ranking) {
+    showScreen("podium");
+    const myId = peer ? peer.id : "";
+    const myIdx = ranking.findIndex((r) => r.peerId === myId);
+    const myRank = myIdx >= 0 ? myIdx + 1 : 0;
+    $("pod-your-rank").textContent =
+      myRank <= 3
+        ? "Sen " + myRank + ". sıradasın!"
+        : "Sen " + myRank + ". sıradasın (podyumda sadece ilk 3 gösterilir).";
+    const top = ranking.slice(0, 3);
+    const step = $("pod-step");
+    step.innerHTML = "";
+    /** @type {{ r: typeof ranking[0], place: number }[]} */
+    let orderDisplay = [];
+    if (top.length === 1) {
+      orderDisplay = [{ r: top[0], place: 1 }];
+    } else if (top.length === 2) {
+      orderDisplay = [
+        { r: top[1], place: 2 },
+        { r: top[0], place: 1 },
+      ];
+    } else {
+      orderDisplay = [
+        { r: top[1], place: 2 },
+        { r: top[0], place: 1 },
+        { r: top[2], place: 3 },
+      ];
+    }
+    orderDisplay.forEach(({ r, place }) => {
+      if (!r) return;
+      const div = document.createElement("div");
+      div.className = "pod-pillar";
+      const av =
+        typeof r.avatarIndex === "number" && AVATAR_SVGS[r.avatarIndex]
+          ? '<span class="av-cell">' + AVATAR_SVGS[r.avatarIndex] + "</span>"
+          : "";
+      div.innerHTML =
+        "<div class=\"pod-bar\">" +
+        place +
+        "</div>" +
+        av +
+        "<div class=\"pod-name\">" +
+        escapeHtml(r.name) +
+        "</div>" +
+        "<div class=\"pod-stars\">★ " +
+        r.stars +
+        "</div>";
+      step.appendChild(div);
+    });
+  }
+
+  function returnToLobbyUi() {
+    clearGameTimers();
+    if (hostPodiumTimer) {
+      clearTimeout(hostPodiumTimer);
+      hostPodiumTimer = null;
+    }
+    currentRoundId = null;
+    gallerySlots = [];
+    hostRoundDrawings.clear();
+    hostVotes.clear();
+    hostCurrentTopic = "";
+    showScreen("lobby");
+  }
+
+  function handleGuestGallerySlot(data) {
+    if (!data || data.roundId !== currentRoundId) return;
+    if (galleryProgressInterval) clearInterval(galleryProgressInterval);
+    galleryProgressInterval = null;
+    if (gallerySlotTimer) clearTimeout(gallerySlotTimer);
+    gallerySlotTimer = null;
+    showScreen("gallery");
+    showGallerySlot(
+      data.roundId,
+      data.slotIndex,
+      data.topic,
+      data.fakeName,
+      data.imageDataUrl,
+      data.artistPeerId
+    );
+    startGalleryProgressBar(data.roundId);
   }
 
   function generateCode() {
@@ -814,9 +1443,21 @@
         guestConnections.delete(conn.peer);
         broadcastFromHost({ type: "roster", peerId: conn.peer, left: true });
         updateHostUi();
-        syncNamesHost();
+        if (currentRoundId && gallerySlots.length === 0 && !hostPodiumTimer) {
+          hostRoundDrawings.delete(conn.peer);
+          hostVotes.delete(conn.peer);
+          hostTryProceedToGallery(currentRoundId, true);
+        } else {
+          syncNamesHost();
+        }
       } else {
         hostConn = null;
+        clearGameTimers();
+        if (podiumTimer) {
+          clearTimeout(podiumTimer);
+          podiumTimer = null;
+        }
+        currentRoundId = null;
         setJoinError("Bağlantı koptu. Tekrar dene.");
         showScreen("lobby");
       }
@@ -847,6 +1488,17 @@
         syncNamesHost();
         return;
       }
+      if (data.type === "submit_drawing") {
+        if (!data.roundId || data.roundId !== currentRoundId) return;
+        hostRoundDrawings.set(conn.peer, data.imageDataUrl || EMPTY_PNG);
+        hostTryProceedToGallery(currentRoundId);
+        return;
+      }
+      if (data.type === "submit_vote") {
+        if (!data.roundId || data.roundId !== currentRoundId) return;
+        recordHostVote(data.artistPeerId, conn.peer, data.stars);
+        return;
+      }
       return;
     }
 
@@ -860,10 +1512,31 @@
         enterNamesPhase(data.iAmHost === true, lastRosterOrder);
         return;
       }
-      if (data.phase === "draw") {
-        enterDrawPhase();
-        return;
-      }
+      return;
+    }
+    if (data.type === "round_start") {
+      currentRoundId = data.roundId;
+      hostCurrentTopic = data.topic || "";
+      enterDrawPhase();
+      $("draw-title").textContent = "Çizim — " + ((myName && myName.trim()) || "Oyuncu");
+      runDrawCountdownAndDraw(data.roundId, data.topic || pickTopic());
+      return;
+    }
+    if (data.type === "gallery_start") {
+      if (data.roundId) currentRoundId = data.roundId;
+      return;
+    }
+    if (data.type === "gallery_slot") {
+      handleGuestGallerySlot(data);
+      return;
+    }
+    if (data.type === "podium_show") {
+      if (podiumTimer) clearTimeout(podiumTimer);
+      showPodiumUi(data.ranking || []);
+      podiumTimer = setTimeout(() => {
+        podiumTimer = null;
+        returnToLobbyUi();
+      }, PODIUM_SHOW_SEC * 1000);
       return;
     }
     if (data.type === "names_state") {
@@ -1120,9 +1793,7 @@
 
   $("btn-draw-start").addEventListener("click", () => {
     if (role !== "host" || !peer) return;
-    const payload = { type: "phase", phase: "draw", iAmHost: false };
-    broadcastFromHost(payload);
-    enterDrawPhase();
+    startRoundFromHost();
   });
 
   buildAvatarSvgs();
