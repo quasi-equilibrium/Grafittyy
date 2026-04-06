@@ -355,6 +355,13 @@
       pointer-events: none;
       transition: width 0.05s linear;
     }
+    .draw-time-left {
+      margin: 0;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
 
     #screen-gallery, #screen-podium {
       position: fixed;
@@ -565,7 +572,10 @@
 
   <div id="screen-draw" class="screen hidden">
     <div class="draw-head">
-      <h2 id="draw-title">Çizim</h2>
+      <div style="display:flex;flex-direction:column;gap:4px;min-width:0;">
+        <h2 id="draw-title">Çizim</h2>
+        <p id="draw-time-left" class="draw-time-left hidden" aria-live="polite">Kalan süre: —</p>
+      </div>
       <div class="draw-tools">
         <div class="draw-colors" id="draw-palette" aria-label="Renkler"></div>
         <div class="draw-slider">
@@ -627,7 +637,8 @@
   };
 
   const COUNTDOWN_SEC = 3;
-  const DRAW_SEC = 120;
+  /** Çizim aşaması süresi: 2 dakika (geri sayımdan sonra) */
+  const DRAW_DURATION_MS = 2 * 60 * 1000;
   const GALLERY_SLOT_SEC = 12;
   const PODIUM_SHOW_SEC = 10;
 
@@ -688,6 +699,7 @@
   let podiumTimer = null;
   let hostGalleryTimer = null;
   let hostPodiumTimer = null;
+  let drawTimeLabelTimer = null;
   let hostCurrentTopic = "";
   /** @type {Map<string, string>} */
   const hostRoundDrawings = new Map();
@@ -703,6 +715,11 @@
     if (galleryProgressInterval) clearInterval(galleryProgressInterval);
     drawCountdownTimer = drawPhaseTimer = gallerySlotTimer = podiumTimer = hostGalleryTimer = hostPodiumTimer = null;
     galleryProgressInterval = null;
+    if (drawTimeLabelTimer) {
+      clearInterval(drawTimeLabelTimer);
+      drawTimeLabelTimer = null;
+    }
+    $("draw-time-left")?.classList.add("hidden");
   }
 
   function showScreen(name) {
@@ -1010,6 +1027,23 @@
     }
   }
 
+  function updateDrawTimeLabel(roundId, drawStartMs) {
+    if (currentRoundId !== roundId) return;
+    const left = Math.max(0, DRAW_DURATION_MS - (Date.now() - drawStartMs));
+    const sec = Math.ceil(left / 1000);
+    const mm = Math.floor(sec / 60);
+    const ss = sec % 60;
+    const el = $("draw-time-left");
+    el.textContent = "Kalan süre: " + mm + ":" + (ss < 10 ? "0" : "") + ss;
+    if (left <= 0) {
+      el.classList.add("hidden");
+      if (drawTimeLabelTimer) {
+        clearInterval(drawTimeLabelTimer);
+        drawTimeLabelTimer = null;
+      }
+    }
+  }
+
   function runDrawCountdownAndDraw(roundId, topic) {
     clearGameTimers();
     gameDrawLocked = true;
@@ -1017,6 +1051,7 @@
     $("draw-topic-chip").classList.add("hidden");
     $("draw-timer-bar").style.width = "0%";
     $("draw-count-overlay").classList.remove("hidden");
+    $("draw-time-left").classList.add("hidden");
     let n = COUNTDOWN_SEC;
     $("draw-count-num").textContent = String(n);
     const tick = () => {
@@ -1028,16 +1063,20 @@
         gameDrawLocked = false;
         drawCanvas?.classList.remove("draw-locked");
         const start = Date.now();
+        $("draw-time-left").classList.remove("hidden");
+        updateDrawTimeLabel(roundId, start);
+        if (drawTimeLabelTimer) clearInterval(drawTimeLabelTimer);
+        drawTimeLabelTimer = setInterval(() => updateDrawTimeLabel(roundId, start), 250);
         const bar = $("draw-timer-bar");
         const tickBar = () => {
           if (currentRoundId !== roundId) return;
           const elapsed = Date.now() - start;
-          const p = Math.min(100, (elapsed / (DRAW_SEC * 1000)) * 100);
+          const p = Math.min(100, (elapsed / DRAW_DURATION_MS) * 100);
           bar.style.width = p + "%";
-          if (elapsed < DRAW_SEC * 1000) requestAnimationFrame(tickBar);
+          if (elapsed < DRAW_DURATION_MS) requestAnimationFrame(tickBar);
         };
         tickBar();
-        drawPhaseTimer = setTimeout(() => finishLocalDrawing(roundId), DRAW_SEC * 1000);
+        drawPhaseTimer = setTimeout(() => finishLocalDrawing(roundId), DRAW_DURATION_MS);
         return;
       }
       drawCountdownTimer = setTimeout(() => {
@@ -1051,6 +1090,11 @@
 
   function finishLocalDrawing(roundId) {
     if (currentRoundId !== roundId) return;
+    if (drawTimeLabelTimer) {
+      clearInterval(drawTimeLabelTimer);
+      drawTimeLabelTimer = null;
+    }
+    $("draw-time-left").classList.add("hidden");
     gameDrawLocked = true;
     drawCanvas?.classList.add("draw-locked");
     $("draw-timer-bar").style.width = "100%";
@@ -1094,7 +1138,7 @@
     hostGalleryTimer = setTimeout(() => {
       hostGalleryTimer = null;
       hostTryProceedToGallery(roundId, true);
-    }, (COUNTDOWN_SEC + DRAW_SEC + 1.5) * 1000);
+    }, COUNTDOWN_SEC * 1000 + DRAW_DURATION_MS + 1500);
   }
 
   function hostTryProceedToGallery(roundId, forceFill) {
